@@ -3,3 +3,4 @@ streamlit-cropper
 opencv-python-headless
 Pillow
 numpy
+google.generativeai

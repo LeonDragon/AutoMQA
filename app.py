@@ -1,3 +1,7 @@
+# First, align the image correctly (rotate image)
+# Second, try to split each 4 images
+# Third, try to cutoff edges to get center of the answers.
+
 import cv2
 import numpy as np
 import streamlit as st
