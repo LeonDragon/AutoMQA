@@ -8,6 +8,7 @@ import io
 import google.generativeai as genai
 from imutils.perspective import four_point_transform
 from helper.perspective_correction import adjust_perspective, adjust_perspective_crop_by_coordinates  # Import the function
+from sklearn.cluster import DBSCAN  # Import DBSCAN
 
 # Read Gemini API key from file
 try:
@@ -44,6 +45,164 @@ def process_answer_key(answer_key_file):
             st.error(f"Error processing answer key: {e}")
     return None
 
+# --- Row/Column Analysis ---
+def infer_answer_area_row_col(bubble_coords):
+    """Infers the answer area using row/column analysis."""
+
+    if not bubble_coords:
+        return None
+
+    # Sort by y-coordinate (rows)
+    bubble_coords.sort(key=lambda coord: coord[1])  # Sort by y
+
+    rows = []
+    current_row = []
+    last_y = bubble_coords[0][1]
+    row_threshold = 20  # Adjust this threshold based on bubble spacing
+
+    for x, y, w, h in bubble_coords:
+        if abs(y - last_y) > row_threshold:
+            # Start a new row
+            rows.append(current_row)
+            current_row = []
+        current_row.append((x, y, w, h))
+        last_y = y
+    rows.append(current_row)  # Add the last row
+
+    # Sort within each row by x-coordinate (columns)
+    for row in rows:
+        row.sort(key=lambda coord: coord[0])  # Sort by x
+
+    # (Optional) Analyze distances between bubbles to refine row/column detection
+    # ...
+
+    # Define answer area using outermost bubbles
+    x_min = min(row[0][0] for row in rows)
+    y_min = rows[0][0][1]
+    x_max = max(row[-1][0] + row[-1][2] for row in rows)
+    y_max = rows[-1][0][1] + rows[-1][0][3]
+
+    # Add some padding
+    padding = 15
+    x_min -= padding
+    y_min -= padding
+    x_max += padding
+    y_max += padding
+
+    return x_min, y_min, x_max, y_max
+
+
+# --- Expanding Bounding Box ---
+def infer_answer_area_expanding_box(bubble_coords):
+    """Infers the answer area using an expanding bounding box."""
+
+    if not bubble_coords:
+        return None
+
+    # Select initial bubbles
+    bubble_coords.sort(key=lambda coord: (coord[0], coord[1]))  # Sort by x, then y
+    top_left = bubble_coords[0]
+    bottom_right = bubble_coords[-1]
+
+    # Initial bounding box
+    x_min, y_min = top_left[0], top_left[1]
+    x_max, y_max = bottom_right[0] + bottom_right[2], bottom_right[1] + bottom_right[3]
+
+    expansion_increment = 10  # Adjust this increment
+    max_iterations = 50  # Adjust this limit
+    previous_count = 0
+    stable_count = 0
+    stability_threshold = 3  # Adjust this threshold
+
+    for _ in range(max_iterations):
+        bubble_count = 0
+        for x, y, w, h in bubble_coords:
+            if x_min <= x and y_min <= y and x + w <= x_max and y + h <= y_max:
+                bubble_count += 1
+
+        if bubble_count == previous_count:
+            stable_count += 1
+        else:
+            stable_count = 0
+        previous_count = bubble_count
+
+        if stable_count >= stability_threshold:
+            break
+
+        # Expand the box
+        x_min -= expansion_increment
+        y_min -= expansion_increment
+        x_max += expansion_increment
+        y_max += expansion_increment
+
+    return x_min, y_min, x_max, y_max
+
+# --- Density-Based Clustering ---
+
+def infer_answer_area_dbscan(bubble_coords):
+    """Infers the answer area using DBSCAN clustering."""
+    print(bubble_coords)
+    if not bubble_coords:
+        return None
+
+    # Prepare data for DBSCAN (x, y coordinates)
+    coords = np.array([[x, y] for x, y, _, _ in bubble_coords])
+
+    # Apply DBSCAN
+    dbscan = DBSCAN(eps=100, min_samples=5)  # Adjust eps and min_samples
+    clusters = dbscan.fit_predict(coords)
+
+    print("Clusters:", clusters)  # Print the cluster assignments
+    print("Cluster Counts:", np.bincount(clusters + 1))  # Print the size of each cluster
+
+
+    # Identify the largest cluster (excluding noise)
+    cluster_counts = np.bincount(clusters + 1)  # +1 to handle -1 (noise)
+    largest_cluster = np.argmax(cluster_counts[1:])  # Exclude noise cluster from argmax
+
+    # Get the points in the largest cluster
+    cluster_points = coords[clusters == largest_cluster]
+
+    if len(cluster_points) > 0:
+        # Calculate bounding box
+        x_min = int(np.min(cluster_points[:, 0]))
+        y_min = int(np.min(cluster_points[:, 1]))
+        x_max = int(np.max(cluster_points[:, 0]))
+        y_max = int(np.max(cluster_points[:, 1]))
+
+        return x_min, y_min, x_max, y_max
+
+    else:
+        return 0,0,0,0  # No cluster found
+    
+def infer_answer_area_original(bubble_coords):
+    """Infers the answer area using the original average-based method."""
+
+    if not bubble_coords:
+        return None, None, None, None  # Return None for all values
+
+    # Calculate average bubble size
+    avg_width = sum(w for _, _, w, _ in bubble_coords) / len(bubble_coords)
+    avg_height = sum(h for _, _, _, h in bubble_coords) / len(bubble_coords)
+
+    # Filter bubbles based on size similarity
+    filtered_coords = []
+    for x, y, w, h in bubble_coords:
+        if abs(w - avg_width) < 0.2 * avg_width and abs(h - avg_height) < 0.2 * avg_height:
+            filtered_coords.append((x, y, w, h))
+
+    if filtered_coords:
+        x_min = min(x for x, _, _, _ in filtered_coords)
+        y_min = min(y for _, y, _, _ in filtered_coords)
+        x_max = max(x + w for x, _, w, _ in filtered_coords)
+        y_max = max(y + h for _, y, _, h in filtered_coords)
+
+        return x_min, y_min, x_max, y_max  # Return the coordinates
+
+    else:
+        return None, None, None, None  # Return None for all values
+
+
 # --- Streamlit App ---
 st.title("Student Answer Sheet Processor")
 
@@ -75,6 +234,7 @@ uploaded_file = st.file_uploader("Choose an image file", type=["jpg", "jpeg", "p
 if uploaded_file is not None:
     image = Image.open(uploaded_file)
     img_np = np.array(image)
+    img_np_org = img_np.copy()
     
     # --- Tabs for Displaying and Processing ---
     tab1, tab2, tab3 = st.tabs(["Original Image", "Processed Image", "Gemini Processing & Scoring"])
@@ -138,6 +298,7 @@ if uploaded_file is not None:
         #with col2: 
         # Display the image after preprocessing
         st.image(img_np, caption="Preprocessed Image", use_container_width=True) 
+        
 
     with tab2:
         # --- Stage 2: Bubble Detection and Extraction ---
@@ -152,20 +313,13 @@ if uploaded_file is not None:
         # Sliders for bubble detection parameters
         st.subheader("Bubble Detection Parameters")
 
-        # Button to toggle visibility of all sliders
-        show_all_sliders = st.checkbox("Fine-tune Parameters", value=False, help="Toggle to show/hide all sliders.")
-        # Use st.columns to create a layout with 2 columns
-        col1, col2 = st.columns(2)
+        # Sliders in the sidebar
+        st.sidebar.subheader("Bubble Detection Parameters")
+        min_width = st.sidebar.slider("Minimum Width (pixels)", 1, 20, 10, help="Minimum width of the contour to be considered as a bubble.")
+        min_height = st.sidebar.slider("Minimum Height (pixels)", 1, 20, 5, help="Minimum height of the contour to be considered as a bubble.")
 
-        with col1:
-            if show_all_sliders:
-                min_width = st.slider("Minimum Width (pixels)", 1, 20, 10, help="Minimum width of the contour to be considered as a bubble.")
-                #min_height = st.slider("Minimum Height (pixels)", 1, 20, 5, help="Minimum height of the contour to be considered as a bubble.")
-
-        with col2:
-            if show_all_sliders:
-                min_aspect_ratio = st.slider("Minimum Aspect Ratio", 0.5, 1.0, 0.9, help="Minimum aspect ratio (width/height) of the contour to be considered as a bubble. A value closer to 1 means the contour is more circular. For example, 0.9 means the contour can be slightly elongated.")
-                #max_aspect_ratio = st.slider("Maximum Aspect Ratio", 1.0, 1.5, 1.1, help="Maximum aspect ratio (width/height) of the contour to be considered as a bubble. A value closer to 1 means the contour is more circular. For example, 1.1 means the contour can be slightly wider than it is tall.")
+        min_aspect_ratio = st.sidebar.slider("Minimum Aspect Ratio", 0.5, 1.0, 0.9, help="Minimum aspect ratio (width/height) of the contour to be considered as a bubble. A value closer to 1 means the contour is more circular. For example, 0.9 means the contour can be slightly elongated.")
+        max_aspect_ratio = st.sidebar.slider("Maximum Aspect Ratio", 1.0, 1.5, 1.1, help="Maximum aspect ratio (width/height) of the contour to be considered as a bubble. A value closer to 1 means the contour is more circular. For example, 1.1 means the contour can be slightly wider than it is tall.")
 
         # Convert to grayscale
         gray = cv2.cvtColor(img_np, cv2.COLOR_BGR2GRAY)
@@ -186,31 +340,24 @@ if uploaded_file is not None:
             ar = w / float(h)
 
             # Filter for bubble-like shapes (adjust these parameters as needed)
-            if (not show_all_sliders or (w >= min_width and h >= min_height)) and ar >= min_aspect_ratio and ar <= max_aspect_ratio:
+            if (w >= min_width and h >= min_height) and ar >= min_aspect_ratio and ar <= max_aspect_ratio:
                 bubble_coords.append((x, y, w, h))
                 cv2.rectangle(img_np, (x, y), (x + w, y + h), (0, 0, 255), 1)  # Draw for visualization
 
         # Infer answer area from bubble coordinates
         if bubble_coords:
-            # Calculate average bubble size
-            avg_width = sum(w for _, _, w, _ in bubble_coords) / len(bubble_coords)
-            avg_height = sum(h for _, _, _, h in bubble_coords) / len(bubble_coords)
+            # Choose one of the methods:
+            #x_min, y_min, x_max, y_max = infer_answer_area_row_col(bubble_coords)
+            #x_min, y_min, x_max, y_max = infer_answer_area_expanding_box(bubble_coords)
+            #x_min, y_min, x_max, y_max = infer_answer_area_dbscan(bubble_coords)
+            x_min, y_min, x_max, y_max = infer_answer_area_original(bubble_coords)
 
-            # Filter bubbles based on size similarity
-            filtered_coords = []
-            for x, y, w, h in bubble_coords:
-                if abs(w - avg_width) < 0.2 * avg_width and abs(h - avg_height) < 0.2 * avg_height:
-                    filtered_coords.append((x, y, w, h))
 
-            if filtered_coords:
-                x_min = min(x for x, _, _, _ in filtered_coords)
-                y_min = min(y for _, y, _, _ in filtered_coords)
-                x_max = max(x + w for x, _, w, _ in filtered_coords)
-                y_max = max(y + h for _, y, _, h in filtered_coords)
 
-                # Add some padding to the answer area
+            if x_min is not None:  # Check if answer area was found
+                # --- Add some padding to the answer area ---
                 padding = 15
-                x_min -= padding + 90
+                x_min -= padding + 90  # More padding on the left side (adjust as needed)
                 y_min -= padding
                 x_max += padding
                 y_max += padding
@@ -329,3 +476,5 @@ if uploaded_file is not None:
                     st.write("Correct Answers:", correct_answers)
                 else:
                     st.error("Number of extracted answers does not match the answer key.")
+
+
