@@ -1,12 +1,15 @@
 import cv2
 import numpy as np
 import streamlit as st
-from PIL import Image
+from PIL import Image, UnidentifiedImageError 
 from streamlit_cropper import st_cropper
 from imutils.perspective import four_point_transform
 from helper.perspective_correction import adjust_perspective, adjust_perspective_crop_by_coordinates  # Import the function
 from helper.est_answer_area import infer_answer_area_average_size, infer_answer_area_grid
 from gemini_utils import upload_to_gemini, process_answer_key, process_student_answers  # Import from gemini_utils.py
+from helper.heic_converter import convert_single_fileBytes_to_img_obj, handle_uploaded_file
+import io
+import os
 
 # --- Streamlit App ---
 st.title("Student Answer Sheet Processor")
@@ -26,7 +29,6 @@ custom_css = """
 # Inject custom CSS into the Streamlit app
 st.markdown(custom_css, unsafe_allow_html=True)
 
-
 # --- Answer Key Upload ---
 st.subheader("Upload Answer Key (Image)")
 answer_key = None
@@ -45,11 +47,58 @@ if answer_key_image:
 
 # --- Student Answer Sheet Processing ---
 st.subheader("Upload Student Answer Sheet")
-uploaded_file = st.file_uploader("Choose an image file", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader("Choose an image file", type=["jpg", "jpeg", "png", "heic"])
 
+def open_image_with_heif(temp_file_path):
+    """
+    Opens an image file with HEIC support using pillow-heif.
+
+    Parameters:
+        temp_file_path (str): Path to the temporary file.
+
+    Returns:
+        PIL.Image.Image: Opened image object.
+    """
+    heif_file = pillow_heif.read_heif(temp_file_path)
+    return Image.frombytes(
+        heif_file.mode,
+        heif_file.size,
+        heif_file.data
+    )
 
 if uploaded_file is not None:
-    image = Image.open(uploaded_file)
+
+    temp_file_path = handle_uploaded_file(uploaded_file)
+
+    if temp_file_path:
+        try:
+            if temp_file_path.lower().endswith('.heic'):
+                image = open_image_with_heif(temp_file_path)
+            else:
+                image = Image.open(temp_file_path)
+
+            st.image(image, caption="Uploaded Image", use_container_width=True)
+        except Exception as e:
+            st.error(f"Error loading image: {e}")
+        finally:
+            os.unlink(temp_file_path)  # Clean u
+
+
+    # Check file type and convert if necessary
+    try:
+        if uploaded_file.type == "image/heic":
+            # Use in-memory bytes buffer 
+            image = convert_single_fileBytes_to_img_obj(io.BytesIO(uploaded_file.read())) 
+            if image is None:
+                st.error("Failed to convert HEIC image.")
+                # Stop further processing if conversion fails
+                st.stop() 
+        else:
+            image = Image.open(uploaded_file)
+    except (UnidentifiedImageError):
+        st.error("Failed to open image file. Please make sure it's a valid image.")
+        st.stop()
+
     img_np = np.array(image)
     img_np_org = img_np.copy()
     

@@ -1,7 +1,9 @@
 streamlit
 streamlit-cropper
 opencv-python-headless
-Pillow
+pillow
+pillow-heif
 numpy
 google.generativeai
 imutils
+scipy
