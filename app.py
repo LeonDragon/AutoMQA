@@ -9,41 +9,8 @@ import google.generativeai as genai
 from imutils.perspective import four_point_transform
 from helper.perspective_correction import adjust_perspective, adjust_perspective_crop_by_coordinates  # Import the function
 from sklearn.cluster import DBSCAN  # Import DBSCAN
+from gemini_utils import upload_to_gemini, process_answer_key, process_student_answers  # Import from gemini_utils.py
 
-# Read Gemini API key from file
-try:
-    with open('secrets/gemini_api_key.txt', 'r') as f:
-        gemini_api_key = f.read().strip()
-        genai.configure(api_key=gemini_api_key)
-except FileNotFoundError:
-    st.error("API key file not found. Please make sure 'secrets/gemini_api_key.txt' exists.")
-    st.stop()  # Stop execution if API key is not found
-
-def upload_to_gemini(image_np, mime_type=None):
-    """Uploads the given numpy image to Gemini."""
-    # Convert numpy array to bytes
-    _, image_encoded = cv2.imencode('.jpg', image_np)
-    # Create an in-memory bytes buffer
-    image_bytes = io.BytesIO(image_encoded) 
-    file = genai.upload_file(image_bytes, mime_type=mime_type)
-    print(f"Uploaded image as: {file.uri}")
-    return file
-
-# --- Answer Key Processing ---
-def process_answer_key(answer_key_file):
-    """Processes the uploaded answer key file and returns a dictionary of answers."""
-    if answer_key_file is not None:
-        try:
-            # Assuming the answer key is a plain text file with format "1: A, 2: B, ..."
-            answer_key_text = answer_key_file.read().decode("utf-8")
-            answer_key = {}
-            for line in answer_key_text.splitlines():
-                q_num, answer = line.split(":")
-                answer_key[int(q_num.strip())] = answer.strip()
-            return answer_key
-        except Exception as e:
-            st.error(f"Error processing answer key: {e}")
-    return None
 
 # --- Row/Column Analysis ---
 def infer_answer_area_row_col(bubble_coords):
@@ -91,7 +58,6 @@ def infer_answer_area_row_col(bubble_coords):
 
     return x_min, y_min, x_max, y_max
 
-
 # --- Expanding Bounding Box ---
 def infer_answer_area_expanding_box(bubble_coords):
     """Infers the answer area using an expanding bounding box."""
@@ -138,7 +104,6 @@ def infer_answer_area_expanding_box(bubble_coords):
     return x_min, y_min, x_max, y_max
 
 # --- Density-Based Clustering ---
-
 def infer_answer_area_dbscan(bubble_coords):
     """Infers the answer area using DBSCAN clustering."""
     print(bubble_coords)
@@ -223,13 +188,25 @@ st.markdown(custom_css, unsafe_allow_html=True)
 
 
 # --- Answer Key Upload ---
-st.subheader("Upload Answer Key")
-answer_key_file = st.file_uploader("Choose an answer key file (text file)", type=["txt"])
-answer_key = process_answer_key(answer_key_file)
+st.subheader("Upload Answer Key (Image)")
+answer_key = None
+answer_key_image = st.file_uploader("Choose an answer key image file", type=["jpg", "jpeg", "png"])
+if answer_key_image:
+    answer_key_image = np.array(Image.open(answer_key_image))
+    answer_keys = process_answer_key(answer_key_image)
+
+    if answer_keys:
+        st.write("Answer Keys:")
+        for test_code, answer_key in answer_keys.items():
+            st.write(f"Test Code: {test_code}")
+            st.write(answer_key)
+    else:
+        st.error("Failed to extract answer key.")
 
 # --- Student Answer Sheet Processing ---
 st.subheader("Upload Student Answer Sheet")
 uploaded_file = st.file_uploader("Choose an image file", type=["jpg", "jpeg", "png"])
+
 
 if uploaded_file is not None:
     image = Image.open(uploaded_file)
@@ -315,11 +292,11 @@ if uploaded_file is not None:
 
         # Sliders in the sidebar
         st.sidebar.subheader("Bubble Detection Parameters")
-        min_width = st.sidebar.slider("Minimum Width (pixels)", 1, 20, 10, help="Minimum width of the contour to be considered as a bubble.")
-        min_height = st.sidebar.slider("Minimum Height (pixels)", 1, 20, 5, help="Minimum height of the contour to be considered as a bubble.")
+        min_width = st.sidebar.slider("Minimum Width (pixels)", 20, 100, 30, help="Minimum width of the contour to be considered as a bubble.")
+        min_height = st.sidebar.slider("Minimum Height (pixels)", 1, 50, 5, help="Minimum height of the contour to be considered as a bubble.")
 
         min_aspect_ratio = st.sidebar.slider("Minimum Aspect Ratio", 0.5, 1.0, 0.9, help="Minimum aspect ratio (width/height) of the contour to be considered as a bubble. A value closer to 1 means the contour is more circular. For example, 0.9 means the contour can be slightly elongated.")
-        max_aspect_ratio = st.sidebar.slider("Maximum Aspect Ratio", 1.0, 1.5, 1.1, help="Maximum aspect ratio (width/height) of the contour to be considered as a bubble. A value closer to 1 means the contour is more circular. For example, 1.1 means the contour can be slightly wider than it is tall.")
+        max_aspect_ratio = st.sidebar.slider("Maximum Aspect Ratio", 1.0, 1.5, 1.2, help="Maximum aspect ratio (width/height) of the contour to be considered as a bubble. A value closer to 1 means the contour is more circular. For example, 1.1 means the contour can be slightly wider than it is tall.")
 
         # Convert to grayscale
         gray = cv2.cvtColor(img_np, cv2.COLOR_BGR2GRAY)
@@ -335,14 +312,24 @@ if uploaded_file is not None:
 
         bubble_coords = []  # Store bubble coordinates
 
+        total_contours = 0  # Initialize a counter for contours
+
+
         for c in cnts:
+            
             (x, y, w, h) = cv2.boundingRect(c)
             ar = w / float(h)
+
+            if (w > 30 and ar >=0.8 and ar <= 1.2):
+                total_contours += 1  # Increment the counter for each contour
+                print(f"Contour: width={w} (pixels), height={h} (pixels), aspect_ratio={ar} (w/h)") 
 
             # Filter for bubble-like shapes (adjust these parameters as needed)
             if (w >= min_width and h >= min_height) and ar >= min_aspect_ratio and ar <= max_aspect_ratio:
                 bubble_coords.append((x, y, w, h))
-                cv2.rectangle(img_np, (x, y), (x + w, y + h), (0, 0, 255), 1)  # Draw for visualization
+                cv2.rectangle(img_np, (x, y), (x + w, y + h), (0, 255, 0), 1)  # Draw for visualization
+        
+        print(f"Total number of contours found: {total_contours}")  # Print the total count
 
         # Infer answer area from bubble coordinates
         if bubble_coords:
@@ -412,69 +399,20 @@ if uploaded_file is not None:
     with tab3:
         # --- Gemini API Integration and Scoring ---
         st.subheader("Gemini Processing and Scoring")
-        model_name = st.selectbox("Select Gemini Model", ["gemini-1.5-pro-latest", "gemini-1.5-flash"])
+        model_name = st.selectbox("Select Gemini Model", ["gemini-1.5-flash", "gemini-1.5-pro-latest"])
+
+        answer_key_path = "answer_keys.json"  # Or get the path from a file uploader
 
         if st.button("Process with Gemini"):
-            if answer_key is None:
-                st.error("Please upload an answer key first.")
-            elif not bubble_coords:
-                st.error("No bubbles were detected. Please check the image and try again.")
-            else:
-                all_extracted_answers = []
-                for i, answer_column in enumerate(columns):  # Use the extracted columns
-                    file = upload_to_gemini(answer_column, mime_type="image/jpeg")
+            all_extracted_answers, scores = process_student_answers(columns, model_name, answer_key_path)
 
-                    # Create the model
-                    generation_config = {
-                        "temperature": 0,
-                        "top_p": 0.95,
-                        "top_k": 40,
-                        "max_output_tokens": 8192,
-                        "response_mime_type": "text/plain",
-                    }
-
-                    model = genai.GenerativeModel(
-                        model_name=model_name,
-                        generation_config=generation_config,
-                    )
-
-                    # Construct the prompt with the image
-                    prompt = [
-                        file,
-                        "Extract the selected answers from the provided answer sheet with question numbers. "
-                        "Detect any marks in the bubbles (fully filled, partially filled, or lightly shaded), "
-                        "associate them with their respective question numbers, and determine the selected answer option (A, B, C, or D). "
-                        "Remember to look closely for each question before responding. "
-                        "Present the results in the format:\n1: A,\n2: B,\n3: C, ...\n"
-                    ]
-
-                    # Generate the response
-                    response = model.generate_content(prompt)
-
-                    # Display response
-                    st.write(f"Response for Answer Section {i+1}:")
-                    st.write(response.text)
-                    
-                    # --- Extract answers from Gemini response ---
-                    extracted_answers = {} 
-                    try:
-                        for line in response.text.splitlines():
-                            q_num, answer = line.split(":")
-                            extracted_answers[int(q_num.strip())] = answer.strip()
-                        all_extracted_answers.extend(list(extracted_answers.values())) 
-                    except Exception as e:
-                        st.error(f"Error extracting answers from Gemini response: {e}")
-                        st.write("Please make sure the response is in the correct format (e.g., '1: A, 2: B, ...')")
-                        continue
-
-                # --- Calculate Score ---
-                if len(all_extracted_answers) == len(answer_key):
-                    correct_answers = sum(a == b for a, b in zip(all_extracted_answers, answer_key.values()))
-                    score = (correct_answers / len(answer_key)) * 100
-                    st.success(f"Score: {score:.2f}%")
-
-                    st.write("Correct Answers:", correct_answers)
-                else:
-                    st.error("Number of extracted answers does not match the answer key.")
+            if all_extracted_answers is not None and scores is not None:
+                st.write("Scores:")
+                for test_code, score in scores.items():
+                    if score is not None:
+                        st.success(f"Test Code {test_code}: {score:.2f}%")
+                    else:
+                        st.error(f"Failed to calculate score for Test Code {test_code}")
+                # st.write("Correct Answers:", sum(a == b for a, b in zip(all_extracted_answers, answer_key.values())))  # You might need to adjust this based on how you want to handle multiple answer keys
 
 
