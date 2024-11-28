@@ -2,171 +2,11 @@ import cv2
 import numpy as np
 import streamlit as st
 from PIL import Image
-from PIL import ImageOps
 from streamlit_cropper import st_cropper
-import io
-import google.generativeai as genai
 from imutils.perspective import four_point_transform
 from helper.perspective_correction import adjust_perspective, adjust_perspective_crop_by_coordinates  # Import the function
-from sklearn.cluster import DBSCAN  # Import DBSCAN
+from helper.est_answer_area import infer_answer_area_average_size, infer_answer_area_grid
 from gemini_utils import upload_to_gemini, process_answer_key, process_student_answers  # Import from gemini_utils.py
-
-
-# --- Row/Column Analysis ---
-def infer_answer_area_row_col(bubble_coords):
-    """Infers the answer area using row/column analysis."""
-
-    if not bubble_coords:
-        return None
-
-    # Sort by y-coordinate (rows)
-    bubble_coords.sort(key=lambda coord: coord[1])  # Sort by y
-
-    rows = []
-    current_row = []
-    last_y = bubble_coords[0][1]
-    row_threshold = 20  # Adjust this threshold based on bubble spacing
-
-    for x, y, w, h in bubble_coords:
-        if abs(y - last_y) > row_threshold:
-            # Start a new row
-            rows.append(current_row)
-            current_row = []
-        current_row.append((x, y, w, h))
-        last_y = y
-    rows.append(current_row)  # Add the last row
-
-    # Sort within each row by x-coordinate (columns)
-    for row in rows:
-        row.sort(key=lambda coord: coord[0])  # Sort by x
-
-    # (Optional) Analyze distances between bubbles to refine row/column detection
-    # ...
-
-    # Define answer area using outermost bubbles
-    x_min = min(row[0][0] for row in rows)
-    y_min = rows[0][0][1]
-    x_max = max(row[-1][0] + row[-1][2] for row in rows)
-    y_max = rows[-1][0][1] + rows[-1][0][3]
-
-    # Add some padding
-    padding = 15
-    x_min -= padding
-    y_min -= padding
-    x_max += padding
-    y_max += padding
-
-    return x_min, y_min, x_max, y_max
-
-# --- Expanding Bounding Box ---
-def infer_answer_area_expanding_box(bubble_coords):
-    """Infers the answer area using an expanding bounding box."""
-
-    if not bubble_coords:
-        return None
-
-    # Select initial bubbles
-    bubble_coords.sort(key=lambda coord: (coord[0], coord[1]))  # Sort by x, then y
-    top_left = bubble_coords[0]
-    bottom_right = bubble_coords[-1]
-
-    # Initial bounding box
-    x_min, y_min = top_left[0], top_left[1]
-    x_max, y_max = bottom_right[0] + bottom_right[2], bottom_right[1] + bottom_right[3]
-
-    expansion_increment = 10  # Adjust this increment
-    max_iterations = 50  # Adjust this limit
-    previous_count = 0
-    stable_count = 0
-    stability_threshold = 3  # Adjust this threshold
-
-    for _ in range(max_iterations):
-        bubble_count = 0
-        for x, y, w, h in bubble_coords:
-            if x_min <= x and y_min <= y and x + w <= x_max and y + h <= y_max:
-                bubble_count += 1
-
-        if bubble_count == previous_count:
-            stable_count += 1
-        else:
-            stable_count = 0
-        previous_count = bubble_count
-
-        if stable_count >= stability_threshold:
-            break
-
-        # Expand the box
-        x_min -= expansion_increment
-        y_min -= expansion_increment
-        x_max += expansion_increment
-        y_max += expansion_increment
-
-    return x_min, y_min, x_max, y_max
-
-# --- Density-Based Clustering ---
-def infer_answer_area_dbscan(bubble_coords):
-    """Infers the answer area using DBSCAN clustering."""
-    print(bubble_coords)
-    if not bubble_coords:
-        return None
-
-    # Prepare data for DBSCAN (x, y coordinates)
-    coords = np.array([[x, y] for x, y, _, _ in bubble_coords])
-
-    # Apply DBSCAN
-    dbscan = DBSCAN(eps=100, min_samples=5)  # Adjust eps and min_samples
-    clusters = dbscan.fit_predict(coords)
-
-    print("Clusters:", clusters)  # Print the cluster assignments
-    print("Cluster Counts:", np.bincount(clusters + 1))  # Print the size of each cluster
-
-
-    # Identify the largest cluster (excluding noise)
-    cluster_counts = np.bincount(clusters + 1)  # +1 to handle -1 (noise)
-    largest_cluster = np.argmax(cluster_counts[1:])  # Exclude noise cluster from argmax
-
-    # Get the points in the largest cluster
-    cluster_points = coords[clusters == largest_cluster]
-
-    if len(cluster_points) > 0:
-        # Calculate bounding box
-        x_min = int(np.min(cluster_points[:, 0]))
-        y_min = int(np.min(cluster_points[:, 1]))
-        x_max = int(np.max(cluster_points[:, 0]))
-        y_max = int(np.max(cluster_points[:, 1]))
-
-        return x_min, y_min, x_max, y_max
-
-    else:
-        return 0,0,0,0  # No cluster found
-    
-def infer_answer_area_original(bubble_coords):
-    """Infers the answer area using the original average-based method."""
-
-    if not bubble_coords:
-        return None, None, None, None  # Return None for all values
-
-    # Calculate average bubble size
-    avg_width = sum(w for _, _, w, _ in bubble_coords) / len(bubble_coords)
-    avg_height = sum(h for _, _, _, h in bubble_coords) / len(bubble_coords)
-
-    # Filter bubbles based on size similarity
-    filtered_coords = []
-    for x, y, w, h in bubble_coords:
-        if abs(w - avg_width) < 0.2 * avg_width and abs(h - avg_height) < 0.2 * avg_height:
-            filtered_coords.append((x, y, w, h))
-
-    if filtered_coords:
-        x_min = min(x for x, _, _, _ in filtered_coords)
-        y_min = min(y for _, y, _, _ in filtered_coords)
-        x_max = max(x + w for x, _, w, _ in filtered_coords)
-        y_max = max(y + h for _, y, _, h in filtered_coords)
-
-        return x_min, y_min, x_max, y_max  # Return the coordinates
-
-    else:
-        return None, None, None, None  # Return None for all values
-
 
 # --- Streamlit App ---
 st.title("Student Answer Sheet Processor")
@@ -322,22 +162,27 @@ if uploaded_file is not None:
 
             if (w > 30 and ar >=0.8 and ar <= 1.2):
                 total_contours += 1  # Increment the counter for each contour
-                print(f"Contour: width={w} (pixels), height={h} (pixels), aspect_ratio={ar} (w/h)") 
+                #print(f"Contour: width={w} (pixels), height={h} (pixels), aspect_ratio={ar} (w/h)") 
 
             # Filter for bubble-like shapes (adjust these parameters as needed)
             if (w >= min_width and h >= min_height) and ar >= min_aspect_ratio and ar <= max_aspect_ratio:
                 bubble_coords.append((x, y, w, h))
                 cv2.rectangle(img_np, (x, y), (x + w, y + h), (0, 255, 0), 1)  # Draw for visualization
         
+        # Check median of filtered bubbles for better decision support
+        widths = [w for _, _, w, _ in bubble_coords]
+        widths_median = np.median(widths)
+
         print(f"Total number of contours found: {total_contours}")  # Print the total count
+        print(f"Median width of bubbles: {widths_median}")  # Print the total count
 
         # Infer answer area from bubble coordinates
         if bubble_coords:
             # Choose one of the methods:
             #x_min, y_min, x_max, y_max = infer_answer_area_row_col(bubble_coords)
             #x_min, y_min, x_max, y_max = infer_answer_area_expanding_box(bubble_coords)
-            #x_min, y_min, x_max, y_max = infer_answer_area_dbscan(bubble_coords)
-            x_min, y_min, x_max, y_max = infer_answer_area_original(bubble_coords)
+            x_min, y_min, x_max, y_max = infer_answer_area_average_size(bubble_coords)
+            #x_min, y_min, x_max, y_max = infer_answer_area_grid(bubble_coords)
 
 
 
