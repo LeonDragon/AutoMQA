@@ -131,10 +131,15 @@ def process_answer_key(answer_key_image):
 
 def process_student_answers(columns, model_name, answer_key_path):
     """Processes the student answer sheet columns using the specified Gemini model and returns the extracted answers and score."""
+    print("\n=== Starting Student Answer Processing ===")
+    print(f"Model: {model_name}")
+    print(f"Number of columns: {len(columns)}")
+    print(f"Answer key path: {answer_key_path}")
 
     try:
         with open(answer_key_path, 'r') as f:
             answer_key_data = json.load(f)["answerKeys"]
+            print(f"Loaded answer key data: {answer_key_data}")
     except FileNotFoundError:
         print(f"Answer key file not found: {answer_key_path}")
         return None, None
@@ -148,46 +153,59 @@ def process_student_answers(columns, model_name, answer_key_path):
     else:
         all_extracted_answers = []
         for i, answer_column in enumerate(columns):
-            file = upload_to_gemini(answer_column, mime_type="image/jpeg")
-
-            generation_config = {
-                "temperature": 0,
-                "top_p": 0.95,
-                "top_k": 40,
-                "max_output_tokens": 8192,
-                "response_mime_type": "text/plain",
-            }
-
-            model = genai.GenerativeModel(
-                model_name=model_name,
-                generation_config=generation_config,
-            )
-
-            prompt = [
-                file,
-                "Extract the selected answers from the provided answer sheet with question numbers. "
-                "Detect any marks in the bubbles (fully filled, partially filled, or lightly shaded), "
-                "associate them with their respective question numbers, and determine the selected answer option (A, B, C, or D). "
-                "Remember to look closely for each question before responding. "
-                "Present the results in the format:\n1: A,\n2: B,\n3: C, ...\n"
-            ]
-
-            response = model.generate_content(prompt)
-            print(response.text)
-
-            extracted_answers = {} 
-            try:
-                for line in response.text.splitlines():
-                    q_num, answer = line.split(":")
-                    extracted_answers[int(q_num.strip())] = answer.strip()
-                all_extracted_answers.extend(list(extracted_answers.values())) 
-            except Exception as e:
-                print(f"Error extracting answers from Gemini response: {e}")
-                print("Please make sure the response is in the correct format (e.g., '1: A, 2: B, ...')")
-                return None, None
+            print(f"\nProcessing Column {i+1}:")
+            print(f"Column shape: {answer_column.shape}")
             
-            #TODO
-            # Append 4 columns into 60 questions first, then compare with the answer_keys with given code.
+            try:
+                file = upload_to_gemini(answer_column, mime_type="image/jpeg")
+                print("Successfully uploaded column to Gemini")
+
+                generation_config = {
+                    "temperature": 0,
+                    "top_p": 0.95,
+                    "top_k": 40,
+                    "max_output_tokens": 8192,
+                    "response_mime_type": "text/plain",
+                }
+
+                model = genai.GenerativeModel(
+                    model_name=model_name,
+                    generation_config=generation_config,
+                )
+                print("Created Gemini model instance")
+
+                prompt = [
+                    file,
+                    "Extract the selected answers from the provided answer sheet with question numbers. "
+                    "Detect any marks in the bubbles (fully filled, partially filled, or lightly shaded), "
+                    "associate them with their respective question numbers, and determine the selected answer option (A, B, C, or D). "
+                    "Remember to look closely for each question before responding. "
+                    "Present the results in the format:\n1: A,\n2: B,\n3: C, ...\n"
+                ]
+
+                print("Sending request to Gemini...")
+                response = model.generate_content(prompt)
+                print("\nGemini Response:")
+                print(response.text)
+
+                extracted_answers = {} 
+                try:
+                    for line in response.text.splitlines():
+                        q_num, answer = line.split(":")
+                        extracted_answers[int(q_num.strip())] = answer.strip()
+                    print(f"Extracted answers: {extracted_answers}")
+                    all_extracted_answers.extend(list(extracted_answers.values())) 
+                except Exception as e:
+                    print(f"Error extracting answers from Gemini response: {e}")
+                    print("Please make sure the response is in the correct format (e.g., '1: A, 2: B, ...')")
+                    return None, None
+            except Exception as e:
+                print(f"Error processing column {i+1}: {e}")
+                return None, None
+
+        print("\nAll columns processed")
+        print(f"Total extracted answers: {len(all_extracted_answers)}")
+        print(f"Answers: {all_extracted_answers}")
 
         scores = {}
         for test_code, test_answer_key in answer_key_data.items():
@@ -195,8 +213,12 @@ def process_student_answers(columns, model_name, answer_key_path):
                 correct_answers = sum(a == b for a, b in zip(all_extracted_answers, test_answer_key.values()))
                 score = (correct_answers / len(test_answer_key)) * 100
                 scores[test_code] = score
+                print(f"\nScores for test {test_code}:")
+                print(f"Correct answers: {correct_answers}/{len(test_answer_key)}")
+                print(f"Score: {score}%")
             else:
-                print(f"Number of extracted answers does not match the answer key for test_code: {test_code}")
+                print(f"\nNumber of extracted answers does not match the answer key for test_code: {test_code}")
+                print(f"Expected {len(test_answer_key)} answers, got {len(all_extracted_answers)}")
                 scores[test_code] = None
 
         return all_extracted_answers, scores
