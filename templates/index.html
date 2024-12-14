@@ -1,560 +1,277 @@
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Student Answer Sheet Processor</title>
-        <!-- Bootstrap CSS -->
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-        <!-- Font Awesome -->
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-        <!-- Cropper.js CSS -->
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
-        <style>
-            body {
-                background-color: #f8f9fa;
-            }
-            .navbar {
-                background-color: #343a40;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            }
-            .navbar-brand, .nav-link {
-                color: white !important;
-            }
-            .navbar-brand:hover, .nav-link:hover {
-                color: #f8f9fa !important;
-            }
-            .sidebar {
-                background-color: #e9ecef;
-                padding: 20px;
-                min-height: calc(100vh - 56px); /* Adjust based on navbar height */
-                border-right: 1px solid #dee2e6;
-            }
-            .main-content {
-                padding: 20px;
-            }
-            .stage-card {
-                margin-bottom: 20px;
-                border: none;
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-                transition: transform 0.3s ease-in-out;
-            }
-            .stage-card:hover {
-                transform: translateY(-5px);
-            }
-            .stage-card .card-header {
-                background-color: #007bff;
-                color: white;
-                border-bottom: none;
-            }
-            .stage-card .card-body {
-                background-color: white;
-            }
-            .preview-image {
-                max-width: 100%;
-                height: auto;
-                border: 1px solid #dee2e6;
-                margin-bottom: 10px;
-            }
-            .column-preview {
-                border: 1px solid #dee2e6;
-                padding: 10px;
-                margin-bottom: 10px;
-                background-color: #f8f9fa;
-            }
-            .progress {
-                height: 30px;
-                margin-bottom: 20px;
-                background-color: #e9ecef;
-            }
-            .progress-bar {
-                background-color: #28a745;
-                font-size: 1rem;
-                line-height: 30px;
-            }
-            .step-indicator {
-                display: flex;
-                justify-content: space-around;
-                margin-bottom: 20px;
-                padding: 0;
-                list-style: none;
-            }
-            .step {
-                text-align: center;
-                flex: 1;
-                position: relative;
-            }
-            .step-icon {
-                width: 40px;
-                height: 40px;
-                border-radius: 50%;
-                background-color: #6c757d;
-                color: white;
-                line-height: 40px;
-                margin: 0 auto 10px;
-                position: relative;
-                z-index: 2;
-            }
-            .step.active .step-icon {
-                background-color: #007bff;
-            }
-            .step.completed .step-icon {
-                background-color: #28a745;
-            }
-            .step-title {
-                font-size: 0.9rem;
-                color: #343a40;
-            }
-            .step:not(:last-child)::after {
-                content: '';
-                position: absolute;
-                width: 100%;
-                height: 2px;
-                background-color: #6c757d;
-                top: 20px;
-                left: 50%;
-                z-index: 1;
-            }
-            .step.active:not(:last-child)::after,
-            .step.completed:not(:last-child)::after {
-                background-color: #28a745;
-            }
-            .stage {
-                display: none;
-            }
-            .stage.active {
-                display: block;
-            }
-            /* Range input custom styling */
-            .form-range {
-                -webkit-appearance: none;
-                appearance: none;
-                width: 100%;
-                height: 8px;
-                background: #e9ecef;
-                border-radius: 4px;
-                outline: none;
-                margin: 10px 0;
-            }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Answer Sheet Processor</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Cropper.js CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
 
-            /* Track styling */
-            .form-range::-webkit-slider-runnable-track {
-                width: 100%;
-                height: 8px;
-                background: #e9ecef;
-                border-radius: 4px;
-                border: none;
-            }
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-clipboard-check me-2"></i>
+                Answer Sheet Processor
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showStage(1)">
+                            <i class="fas fa-key me-1"></i>
+                            Answer Key
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showStage(2)">
+                            <i class="fas fa-file-alt me-1"></i>
+                            Student Sheet
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showStage(4)">
+                            <i class="fas fa-robot me-1"></i>
+                            Gemini
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
 
-            .form-range::-moz-range-track {
-                width: 100%;
-                height: 8px;
-                background: #e9ecef;
-                border-radius: 4px;
-                border: none;
-            }
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Main Content -->
+            <div class="col-md-9 main-content">
+                <!-- Step Indicator -->
+                <ul class="step-indicator">
+                    <li class="step active" id="step-1">
+                        <div class="step-icon">1</div>
+                        <div class="step-title">Answer Key</div>
+                    </li>
+                    <li class="step" id="step-2">
+                        <div class="step-icon">2</div>
+                        <div class="step-title">Image Processing</div>
+                    </li>
+                    <li class="step" id="step-3">
+                        <div class="step-icon">3</div>
+                        <div class="step-title">Answer Columns</div>
+                    </li>
+                    <li class="step" id="step-4">
+                        <div class="step-icon">4</div>
+                        <div class="step-title">Gemini Processing</div>
+                    </li>
+                </ul>
+                
+                <!-- Progress Bar -->
+                <div class="progress">
+                    <div class="progress-bar" role="progressbar" style="width: 25%;" id="progress-bar">
+                        Stage 1: Answer Key Upload
+                    </div>
+                </div>
 
-            .form-range::-ms-track {
-                width: 100%;
-                height: 8px;
-                background: #e9ecef;
-                border-radius: 4px;
-                border-color: transparent;
-                color: transparent;
-            }
+                <!-- Stage 1: Answer Key Upload -->
+                <div class="stage active" id="stage1">
+                    <div class="card stage-card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-key me-2"></i>
+                                Upload Answer Key
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="answer-key-form">
+                                <div class="mb-3">
+                                    <label for="answer-key" class="form-label">
+                                        <i class="fas fa-file-image me-2"></i>
+                                        Choose an answer key image file
+                                    </label>
+                                    <input type="file" class="form-control" id="answer-key" accept=".jpg,.jpeg,.png,.heic">
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-upload me-2"></i>
+                                        Upload Answer Key
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" onclick="skipStage1()">
+                                        <i class="fas fa-forward me-2"></i>
+                                        Skip Answer Key
+                                    </button>
+                                </div>
+                            </form>
+                            <div id="answer-key-results" class="mt-3"></div>
+                        </div>
+                    </div>
+                </div>
 
-            /* Thumb styling */
-            .form-range::-webkit-slider-thumb {
-                -webkit-appearance: none;
-                appearance: none;
-                width: 20px;
-                height: 20px;
-                background: #007bff;
-                border: none;
-                border-radius: 50%;
-                margin-top: -6px;
-                cursor: pointer;
-                transition: all 0.2s ease-in-out;
-            }
+                <!-- Stage 2: Image Processing -->
+                <div class="stage" id="stage2">
+                    <div class="card stage-card">
+                        <div class="card-header">
+                            <h5>Stage 2: Image Processing</h5>
+                            <!-- Back button will be inserted here -->
+                        </div>
+                        <div class="card-body">
+                            <form id="student-sheet-form">
+                                <div class="mb-3">
+                                    <label for="student-sheet" class="form-label">
+                                        <i class="fas fa-file-upload me-2"></i>
+                                        Choose a student answer sheet image
+                                    </label>
+                                    <input type="file" class="form-control" id="student-sheet" accept=".jpg,.jpeg,.png,.heic">
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-cogs me-2"></i>
+                                    Process Sheet
+                                </button>
+                            </form>
+                            
+                            <!-- Image Processing Results -->
+                            <div id="processing-results" class="mt-4">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>
+                                            <i class="fas fa-image me-2"></i>
+                                            Processed Image
+                                        </h6>
+                                        <img id="processed-image" class="preview-image">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>
+                                            <i class="fas fa-vector-square me-2"></i>
+                                            Warped Image
+                                        </h6>
+                                        <img id="warped-image" class="preview-image">
+                                    </div>
+                                </div>
+                                
+                                <div id="review-controls" class="mt-3" style="display: none;">
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Please review the processed images above. Make sure the image processing is accurate.
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-primary" onclick="proceedToStage3()">
+                                            <i class="fas fa-arrow-right me-2"></i>
+                                            Continue to Answer Columns
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" onclick="retryProcessing()">
+                                            <i class="fas fa-redo me-2"></i>
+                                            Retry Processing
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-            .form-range::-moz-range-thumb {
-                width: 20px;
-                height: 20px;
-                background: #007bff;
-                border: none;
-                border-radius: 50%;
-                cursor: pointer;
-                transition: all 0.2s ease-in-out;
-            }
+                <!-- Stage 3: Answer Columns -->
+                <div class="stage" id="stage3">
+                    <div class="card stage-card">
+                        <div class="card-header">
+                            <h5>Stage 3: Column Review</h5>
+                            <!-- Back button will be inserted here -->
+                        </div>
+                        <div class="card-body">
+                            <div id="columns-section" style="display: none;">
+                                <div class="mb-3">
+                                    <label for="gemini-model-select" class="form-label">
+                                        <i class="fas fa-brain me-2"></i>
+                                        Select Gemini Model
+                                    </label>
+                                    <select class="form-select" id="gemini-model-select">
+                                        <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+                                        <option value="gemini-1.5-pro-latest">gemini-1.5-pro-latest</option>
+                                    </select>
+                                </div>
 
-            .form-range::-ms-thumb {
-                width: 20px;
-                height: 20px;
-                background: #007bff;
-                border: none;
-                border-radius: 50%;
-                cursor: pointer;
-                margin-top: 0;
-                transition: all 0.2s ease-in-out;
-            }
+                                <div class="d-grid gap-2 mb-4">
+                                    <button type="button" class="btn btn-primary" id="process-all-columns">
+                                        <i class="fas fa-robot me-2"></i>
+                                        Process All Columns with Gemini
+                                    </button>
+                                </div>
 
-            /* Hover effects */
-            .form-range::-webkit-slider-thumb:hover {
-                background: #0056b3;
-                transform: scale(1.1);
-            }
+                                <h6 class="mb-3">
+                                    <i class="fas fa-columns me-2"></i>
+                                    Answer Columns
+                                </h6>
+                                <div class="row" id="columns-container"></div>
+                                
+                                <h6 class="mt-4 mb-3">
+                                    <i class="fas fa-heading me-2"></i>
+                                    Header
+                                </h6>
+                                <img id="header-image" class="preview-image">
 
-            .form-range::-moz-range-thumb:hover {
-                background: #0056b3;
-                transform: scale(1.1);
-            }
+                                <div class="mt-4">
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Please review each column's results before proceeding.
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-primary" onclick="proceedToStage4()">
+                                            <i class="fas fa-arrow-right me-2"></i>
+                                            Continue to Results
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" onclick="retryProcessing()">
+                                            <i class="fas fa-redo me-2"></i>
+                                            Retry Processing
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-            .form-range::-ms-thumb:hover {
-                background: #0056b3;
-                transform: scale(1.1);
-            }
-
-            /* Focus styles */
-            .form-range:focus::-webkit-slider-thumb {
-                box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
-            }
-
-            .form-range:focus::-moz-range-thumb {
-                box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
-            }
-
-            .form-range:focus::-ms-thumb {
-                box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
-            }
-
-            /* Progress fill */
-            .form-range::-moz-range-progress {
-                background: #007bff;
-                height: 8px;
-                border-radius: 4px;
-            }
-
-            .form-range::-ms-fill-lower {
-                background: #007bff;
-                border-radius: 4px;
-            }
-
-            .form-range::-ms-fill-upper {
-                background: #e9ecef;
-                border-radius: 4px;
-            }
-
-            /* Value display */
-            #min-width-value,
-            #min-height-value,
-            #min-aspect-ratio-value,
-            #max-aspect-ratio-value {
-                display: inline-block;
-                font-weight: 500;
-                color: #007bff;
-                margin-left: 8px;
-                min-width: 40px;
-            }
-
-            /* Container for range inputs */
-            .range-container {
-                background: white;
-                padding: 15px;
-                border-radius: 8px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                margin-bottom: 15px;
-            }
-        </style>
-    </head>
-    <body>
-
-        <!-- Navbar -->
-        <nav class="navbar navbar-expand-lg">
-            <div class="container-fluid">
-                <a class="navbar-brand" href="#">
-                    <i class="fas fa-clipboard-check me-2"></i>
-                    Answer Sheet Processor
-                </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav ms-auto">
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" onclick="showStage(1)">
-                                <i class="fas fa-key me-1"></i>
-                                Answer Key
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" onclick="showStage(2)">
-                                <i class="fas fa-file-alt me-1"></i>
-                                Student Sheet
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" onclick="showStage(4)">
-                                <i class="fas fa-robot me-1"></i>
-                                Gemini
-                            </a>
-                        </li>
-                    </ul>
+                <!-- Stage 4: Gemini Processing -->
+                <div class="stage" id="stage4">
+                    <div class="card stage-card">
+                        <div class="card-header">
+                            <h5>Stage 4: Results</h5>
+                            <!-- Back button will be inserted here -->
+                        </div>
+                        <div class="card-body">
+                            <form id="gemini-form">
+                                <div class="mb-3">
+                                    <label for="model-select" class="form-label">
+                                        <i class="fas fa-brain me-2"></i>
+                                        Select Gemini Model
+                                    </label>
+                                    <select class="form-select" id="model-select">
+                                        <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+                                        <option value="gemini-1.5-pro-latest">gemini-1.5-pro-latest</option>
+                                    </select>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-play me-2"></i>
+                                        Process with Gemini
+                                    </button>
+                                </div>
+                            </form>
+                            <div id="gemini-results" class="mt-3"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </nav>
 
-        <div class="container-fluid">
-            <div class="row">
-                <!-- Main Content -->
-                <div class="col-md-9 main-content">
-                    <!-- Step Indicator -->
-                    <ul class="step-indicator">
-                        <li class="step active" id="step-1">
-                            <div class="step-icon">1</div>
-                            <div class="step-title">Answer Key</div>
-                        </li>
-                        <li class="step" id="step-2">
-                            <div class="step-icon">2</div>
-                            <div class="step-title">Image Processing</div>
-                        </li>
-                        <li class="step" id="step-3">
-                            <div class="step-icon">3</div>
-                            <div class="step-title">Answer Columns</div>
-                        </li>
-                        <li class="step" id="step-4">
-                            <div class="step-icon">4</div>
-                            <div class="step-title">Gemini Processing</div>
-                        </li>
-                    </ul>
-                    
-                    <!-- Progress Bar -->
-                    <div class="progress">
-                        <div class="progress-bar" role="progressbar" style="width: 25%;" id="progress-bar">
-                            Stage 1: Answer Key Upload
-                        </div>
-                    </div>
-
-                    <!-- Stage 1: Answer Key Upload -->
-                    <div class="stage active" id="stage1">
-                        <div class="card stage-card">
-                            <div class="card-header">
-                                <h5 class="mb-0">
-                                    <i class="fas fa-key me-2"></i>
-                                    Upload Answer Key
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <form id="answer-key-form">
-                                    <div class="mb-3">
-                                        <label for="answer-key" class="form-label">
-                                            <i class="fas fa-file-image me-2"></i>
-                                            Choose an answer key image file
-                                        </label>
-                                        <input type="file" class="form-control" id="answer-key" accept=".jpg,.jpeg,.png,.heic">
-                                    </div>
-                                    <div class="d-flex gap-2">
-                                        <button type="submit" class="btn btn-primary">
-                                            <i class="fas fa-upload me-2"></i>
-                                            Upload Answer Key
-                                        </button>
-                                        <button type="button" class="btn btn-secondary" onclick="skipStage1()">
-                                            <i class="fas fa-forward me-2"></i>
-                                            Skip Answer Key
-                                        </button>
-                                    </div>
-                                </form>
-                                <div id="answer-key-results" class="mt-3"></div>
-                                
-                                <!-- Cropping Section -->
-                                <div id="cropping-section" class="mt-4" style="display: none;">
-                                    <h6 class="mb-3">
-                                        <i class="fas fa-crop-alt me-2"></i>
-                                        Crop Answer Key
-                                    </h6>
-                                    <div class="img-container">
-                                        <img id="cropCanvas" src="">
-                                    </div>
-                                    <div class="d-flex gap-2 mt-3">
-                                        <button class="btn btn-primary" onclick="confirmCrop()">
-                                            <i class="fas fa-check me-2"></i>
-                                            Confirm Crop
-                                        </button>
-                                        <button class="btn btn-secondary" onclick="resetCrop()">
-                                            <i class="fas fa-undo me-2"></i>
-                                            Reset Crop
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Stage 2: Image Processing -->
-                    <div class="stage" id="stage2">
-                        <div class="card stage-card">
-                            <div class="card-header">
-                                <h5 class="mb-0">
-                                    <i class="fas fa-file-alt me-2"></i>
-                                    Process Student Answer Sheet
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <form id="student-sheet-form">
-                                    <div class="mb-3">
-                                        <label for="student-sheet" class="form-label">
-                                            <i class="fas fa-file-upload me-2"></i>
-                                            Choose a student answer sheet image
-                                        </label>
-                                        <input type="file" class="form-control" id="student-sheet" accept=".jpg,.jpeg,.png,.heic">
-                                    </div>
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-cogs me-2"></i>
-                                        Process Sheet
-                                    </button>
-                                </form>
-                                
-                                <!-- Image Processing Results -->
-                                <div id="processing-results" class="mt-4">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <h6>
-                                                <i class="fas fa-image me-2"></i>
-                                                Processed Image
-                                            </h6>
-                                            <img id="processed-image" class="preview-image">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <h6>
-                                                <i class="fas fa-vector-square me-2"></i>
-                                                Warped Image
-                                            </h6>
-                                            <img id="warped-image" class="preview-image">
-                                        </div>
-                                    </div>
-                                    
-                                    <div id="review-controls" class="mt-3" style="display: none;">
-                                        <div class="alert alert-info">
-                                            <i class="fas fa-info-circle me-2"></i>
-                                            Please review the processed images above. Make sure the image processing is accurate.
-                                        </div>
-                                        <div class="d-flex gap-2">
-                                            <button type="button" class="btn btn-primary" onclick="proceedToStage3()">
-                                                <i class="fas fa-arrow-right me-2"></i>
-                                                Continue to Answer Columns
-                                            </button>
-                                            <button type="button" class="btn btn-secondary" onclick="retryProcessing()">
-                                                <i class="fas fa-redo me-2"></i>
-                                                Retry Processing
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Stage 3: Answer Columns -->
-                    <div class="stage" id="stage3">
-                        <div class="card stage-card">
-                            <div class="card-header">
-                                <h5 class="mb-0">
-                                    <i class="fas fa-columns me-2"></i>
-                                    Answer Columns Review
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <div id="columns-section">
-                                    <div class="mb-3">
-                                        <label for="gemini-model-select" class="form-label">
-                                            <i class="fas fa-brain me-2"></i>
-                                            Select Gemini Model
-                                        </label>
-                                        <select class="form-select" id="gemini-model-select">
-                                            <option value="gemini-1.5-flash">gemini-1.5-flash</option>
-                                            <option value="gemini-1.5-pro-latest">gemini-1.5-pro-latest</option>
-                                        </select>
-                                    </div>
-
-                                    <div class="d-grid gap-2 mb-4">
-                                        <button type="button" class="btn btn-primary" id="process-all-columns">
-                                            <i class="fas fa-robot me-2"></i>
-                                            Process All Columns with Gemini
-                                        </button>
-                                    </div>
-
-                                    <h6 class="mb-3">
-                                        <i class="fas fa-columns me-2"></i>
-                                        Answer Columns
-                                    </h6>
-                                    <div class="row" id="columns-container"></div>
-                                    
-                                    <h6 class="mt-4 mb-3">
-                                        <i class="fas fa-heading me-2"></i>
-                                        Header
-                                    </h6>
-                                    <img id="header-image" class="preview-image">
-
-                                    <div class="mt-4">
-                                        <div class="alert alert-info">
-                                            <i class="fas fa-info-circle me-2"></i>
-                                            Please review each column's results before proceeding.
-                                        </div>
-                                        <div class="d-flex gap-2">
-                                            <button type="button" class="btn btn-primary" onclick="proceedToStage4()">
-                                                <i class="fas fa-arrow-right me-2"></i>
-                                                Continue to Results
-                                            </button>
-                                            <button type="button" class="btn btn-secondary" onclick="retryProcessing()">
-                                                <i class="fas fa-redo me-2"></i>
-                                                Retry Processing
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Stage 4: Gemini Processing -->
-                    <div class="stage" id="stage4">
-                        <div class="card stage-card">
-                            <div class="card-header">
-                                <h5 class="mb-0">
-                                    <i class="fas fa-robot me-2"></i>
-                                    Gemini Processing and Scoring
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <form id="gemini-form">
-                                    <div class="mb-3">
-                                        <label for="model-select" class="form-label">
-                                            <i class="fas fa-brain me-2"></i>
-                                            Select Gemini Model
-                                        </label>
-                                        <select class="form-select" id="model-select">
-                                            <option value="gemini-1.5-flash">gemini-1.5-flash</option>
-                                            <option value="gemini-1.5-pro-latest">gemini-1.5-pro-latest</option>
-                                        </select>
-                                    </div>
-                                    <div class="d-flex gap-2">
-                                        <button type="submit" class="btn btn-primary">
-                                            <i class="fas fa-play me-2"></i>
-                                            Process with Gemini
-                                        </button>
-                                        <button type="button" id="process-all-columns" class="btn btn-secondary">
-                                            <i class="fas fa-list-check me-2"></i>
-                                            Process All Columns
-                                        </button>
-                                    </div>
-                                </form>
-                                <div id="gemini-results" class="mt-3"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Sidebar -->
-                <div class="col-md-3 sidebar">
+            <!-- Sidebar -->
+            <div class="col-md-3 sidebar">
+                <div id="settings-section">
                     <h4>
                         <i class="fas fa-sliders-h me-2"></i>
                         Processing Settings
@@ -594,459 +311,16 @@
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Bootstrap Bundle with Popper -->
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-        <!-- Cropper.js -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-        <!-- Custom JavaScript -->
-        <script>
-            let currentStage = 1;
-            const totalStages = 4;
-            let columnData = null;
-
-            function updateProgress() {
-                const progress = (currentStage / totalStages) * 100;
-                const progressBar = document.getElementById('progress-bar');
-                progressBar.style.width = `${progress}%`;
-                
-                // Update progress bar text based on current stage
-                const stageTexts = {
-                    1: 'Stage 1: Answer Key Upload',
-                    2: 'Stage 2: Image Processing',
-                    3: 'Stage 3: Answer Columns',
-                    4: 'Stage 4: Gemini Processing'
-                };
-                progressBar.textContent = stageTexts[currentStage];
-
-                // Update step indicators
-                for (let i = 1; i <= totalStages; i++) {
-                    const step = document.getElementById(`step-${i}`);
-                    if (i === currentStage) {
-                        step.classList.add('active');
-                    } else {
-                        step.classList.remove('active');
-                    }
-                }
-            }
-
-            function showStage(stageNumber) {
-                // Hide all stages
-                document.querySelectorAll('.stage').forEach(stage => {
-                    stage.classList.remove('active');
-                });
-                
-                // Show the selected stage
-                document.getElementById(`stage${stageNumber}`).classList.add('active');
-                
-                // Update current stage and progress
-                currentStage = stageNumber;
-                updateProgress();
-            }
-
-            function proceedToStage2() {
-                showStage(2);
-            }
-
-            function proceedToStage3() {
-                showStage(3);
-            }
-
-            function proceedToStage4() {
-                showStage(4);
-            }
-
-            function retryProcessing() {
-                // Clear previous results
-                document.getElementById('processed-image').src = '';
-                document.getElementById('warped-image').src = '';
-                document.getElementById('columns-container').innerHTML = '';
-                document.getElementById('header-image').src = '';
-                
-                // Go back to stage 2
-                showStage(2);
-            }
-
-            // Function to skip stage 1
-            function skipStage1() {
-                showStage(2);
-                // Add a warning message
-                document.getElementById('answer-key-results').innerHTML = 
-                    '<div class="alert alert-warning">Answer key step was skipped. Scoring functionality will be limited.</div>';
-            }
-
-            // Handle answer key upload
-            document.getElementById('answer-key-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const formData = new FormData();
-                const file = document.getElementById('answer-key').files[0];
-                formData.append('answer_key', file);
-
-                try {
-                    const response = await fetch('/process_answer_key', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    const data = await response.json();
-
-                    if (data.success) {
-                        const resultsDiv = document.getElementById('answer-key-results');
-                        resultsDiv.innerHTML = '<div class="alert alert-success">Answer key processed successfully!</div>';
-                        showStage(2);
-                    } else {
-                        throw new Error(data.error);
-                    }
-                } catch (error) {
-                    document.getElementById('answer-key-results').innerHTML = 
-                        `<div class="alert alert-danger">Error: ${error.message}</div>`;
-                }
-            });
-
-            // Handle student sheet processing
-            document.getElementById('student-sheet-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const formData = new FormData();
-                const file = document.getElementById('student-sheet').files[0];
-                formData.append('student_sheet', file);
-
-                // Add processing parameters
-                formData.append('min_width', document.getElementById('min-width').value);
-                formData.append('min_height', document.getElementById('min-height').value);
-                formData.append('min_aspect_ratio', document.getElementById('min-aspect-ratio').value);
-                formData.append('max_aspect_ratio', document.getElementById('max-aspect-ratio').value);
-
-                try {
-                    const response = await fetch('/process_student_sheet', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    const data = await response.json();
-
-                    if (data.success) {
-                        // Display processed images
-                        document.getElementById('processed-image').src = `data:image/jpeg;base64,${data.processed_image}`;
-                        document.getElementById('warped-image').src = `data:image/jpeg;base64,${data.warped_image}`;
-                        
-                        // Store data for later use
-                        columnData = data.columns;
-                        document.getElementById('header-image').src = `data:image/jpeg;base64,${data.header}`;
-
-                        // Show review controls
-                        document.getElementById('review-controls').style.display = 'block';
-                        document.getElementById('columns-section').style.display = 'none';
-
-                        // Prepare columns display but don't show yet
-                        const columnsContainer = document.getElementById('columns-container');
-                        columnsContainer.innerHTML = '';
-                        data.columns.forEach((column, index) => {
-                            const colDiv = document.createElement('div');
-                            colDiv.className = 'col-md-3';
-                            colDiv.innerHTML = `
-                                <div class="column-preview">
-                                    <h6>Column ${index + 1}</h6>
-                                    <img src="data:image/jpeg;base64,${column}" class="preview-image">
-                                </div>
-                            `;
-                            columnsContainer.appendChild(colDiv);
-                        });
-                    } else {
-                        throw new Error(data.error);
-                    }
-                } catch (error) {
-                    document.getElementById('processing-results').innerHTML = 
-                        `<div class="alert alert-danger">Error: ${error.message}</div>`;
-                }
-            });
-
-            // Function to proceed to stage 3
-            function proceedToStage3() {
-                // Show the columns section
-                document.getElementById('columns-section').style.display = 'block';
-                // Scroll to the columns section
-                document.getElementById('columns-section').scrollIntoView({ behavior: 'smooth' });
-                // Show stage 3
-                showStage(3);
-            }
-
-            // Function to retry processing
-            function retryProcessing() {
-                // Clear the current results
-                document.getElementById('processed-image').src = '';
-                document.getElementById('warped-image').src = '';
-                document.getElementById('review-controls').style.display = 'none';
-                document.getElementById('columns-section').style.display = 'none';
-                // Reset the file input
-                document.getElementById('student-sheet').value = '';
-                // Show a message
-                document.getElementById('processing-results').innerHTML = 
-                    '<div class="alert alert-info">Please adjust the processing parameters in the sidebar if needed and upload the image again.</div>';
-            }
-
-            // Function to proceed to stage 4
-            function proceedToStage4() {
-                showStage(4);
-            }
-
-            // Handle Gemini processing
-            document.getElementById('gemini-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const modelName = document.getElementById('model-select').value;
-
-                if (skipAnswerKey) {
-                    document.getElementById('gemini-results').innerHTML = 
-                        '<div class="alert alert-warning">Scoring is not available because the answer key step was skipped.</div>';
-                    return;
-                }
-
-                try {
-                    const response = await fetch('/process_with_gemini', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            model_name: modelName,
-                            columns: columnData
-                        })
-                    });
-                    const data = await response.json();
-
-                    if (data.success) {
-                        let resultsHtml = '<div class="alert alert-success"><h5>Results:</h5>';
-                        for (const [testCode, score] of Object.entries(data.scores)) {
-                            resultsHtml += `<p>Test Code ${testCode}: ${score !== null ? score.toFixed(2) + '%' : 'Failed to calculate'}</p>`;
-                        }
-                        resultsHtml += '</div>';
-                        document.getElementById('gemini-results').innerHTML = resultsHtml;
-                    } else {
-                        throw new Error(data.error);
-                    }
-                } catch (error) {
-                    document.getElementById('gemini-results').innerHTML = 
-                        `<div class="alert alert-danger">Error: ${error.message}</div>`;
-                }
-            });
-
-            // Update range input values
-            document.querySelectorAll('.form-range').forEach(range => {
-                range.addEventListener('input', (e) => {
-                    document.getElementById(`${e.target.id}-value`).textContent = e.target.value;
-                });
-            });
-
-            // Settings handling
-            const settings = {
-                minWidth: 30,
-                minHeight: 5,
-                minAspectRatio: 0.9,
-                maxAspectRatio: 1.2
-            };
-
-            // Update range input values
-            document.querySelectorAll('.form-range').forEach(range => {
-                range.addEventListener('input', function() {
-                    const valueDisplay = document.getElementById(`${this.id}-value`);
-                    if (valueDisplay) {
-                        valueDisplay.textContent = this.value;
-                        settings[this.id.replace('-', '')] = parseFloat(this.value);
-                    }
-                });
-            });
-
-            // Initialize settings modal
-            const settingsModal = new bootstrap.Modal(document.getElementById('settingsModal'));
-
-            // Handle settings apply
-            document.querySelector('#settingsModal .btn-primary').addEventListener('click', function() {
-                // Update settings object with current values
-                settings.minWidth = parseFloat(document.getElementById('min-width').value);
-                settings.minHeight = parseFloat(document.getElementById('min-height').value);
-                settings.minAspectRatio = parseFloat(document.getElementById('min-aspect-ratio').value);
-                settings.maxAspectRatio = parseFloat(document.getElementById('max-aspect-ratio').value);
-                
-                // Close modal
-                settingsModal.hide();
-            });
-
-            // Handle file processing with settings
-            document.getElementById('student-sheet-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const formData = new FormData();
-                const fileInput = document.getElementById('student-sheet');
-                
-                if (fileInput.files.length === 0) {
-                    alert('Please select a file first');
-                    return;
-                }
-
-                formData.append('file', fileInput.files[0]);
-                // Add current settings to the form data
-                Object.entries(settings).forEach(([key, value]) => {
-                    formData.append(key, value);
-                });
-
-                try {
-                    const response = await fetch('/process_image', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        // Update the preview images
-                        document.getElementById('processed-image').src = `data:image/jpeg;base64,${data.processed_image}`;
-                        document.getElementById('warped-image').src = `data:image/jpeg;base64,${data.warped_image}`;
-                        
-                        // Show the review controls
-                        document.getElementById('review-controls').style.display = 'block';
-                    } else {
-                        alert('Error processing image: ' + data.error);
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('Error processing image');
-                }
-            });
-
-            function displayColumns(columns) {
-                columnData = columns; // Store columns for later use
-                const container = document.getElementById('columns-container');
-                container.innerHTML = '';
-                
-                columns.forEach((column, index) => {
-                    const colDiv = document.createElement('div');
-                    colDiv.className = 'col-md-3 mb-4';
-                    colDiv.innerHTML = `
-                        <div class="card">
-                            <div class="card-body">
-                                <h6 class="card-title">Column ${index + 1}</h6>
-                                <img src="data:image/jpeg;base64,${column}" class="img-fluid mb-2">
-                                <div id="column-result-${index}" class="column-results"></div>
-                            </div>
-                        </div>
-                    `;
-                    container.appendChild(colDiv);
-                });
-            }
-
-            // Add click handler for processing all columns
-            document.getElementById('process-all-columns').addEventListener('click', async function() {
-                console.log('Button clicked - Starting Gemini processing');
-                
-                if (!columnData) {
-                    console.error('No column data available');
-                    alert('No columns available to process. Please process a student sheet first.');
-                    return;
-                }
-
-                const modelName = document.getElementById('gemini-model-select').value;
-                console.log('Selected model:', modelName);
-                console.log('Column data available:', columnData ? 'Yes' : 'No');
-                console.log('Number of columns:', columnData ? columnData.length : 0);
-                
-                const button = this;
-                
-                // Show loading state
-                button.disabled = true;
-                const originalContent = button.innerHTML;
-                button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing all columns...';
-                
-                try {
-                    console.log('Preparing API request to /process_all_columns');
-                    console.log('Request payload:', {
-                        model_name: modelName,
-                        columns: columnData
-                    });
-                    
-                    const response = await fetch('/process_all_columns', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            model_name: modelName,
-                            columns: columnData
-                        })
-                    });
-
-                    console.log('Response received:', response.status, response.statusText);
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-
-                    const result = await response.json();
-                    console.log('Processing result:', result);
-
-                    // Update UI with results
-                    if (result.column_results) {
-                        console.log('Updating UI with column results');
-                        result.column_results.forEach((columnResult, columnIndex) => {
-                            const resultDiv = document.getElementById(`column-result-${columnIndex}`);
-                            if (resultDiv) {
-                                resultDiv.innerHTML = ''; // Clear previous results
-                                columnResult.forEach(answer => {
-                                    const answerDiv = document.createElement('div');
-                                    answerDiv.className = 'alert alert-info mt-2';
-                                    answerDiv.innerHTML = `
-                                        <small class="d-block">Answer: ${answer}</small>
-                                    `;
-                                    resultDiv.appendChild(answerDiv);
-                                });
-                            }
-                        });
-
-                        // Show scores if available
-                        if (result.scores) {
-                            const scoresHtml = Object.entries(result.scores)
-                                .map(([testCode, score]) => 
-                                    `<div class="alert alert-success">
-                                        Test ${testCode}: ${score !== null ? score.toFixed(2) + '%' : 'N/A'}
-                                    </div>`
-                                )
-                                .join('');
-                            
-                            // Add scores to each column or to a separate scores section
-                            const scoresDiv = document.createElement('div');
-                            scoresDiv.className = 'col-12 mt-4';
-                            scoresDiv.innerHTML = `
-                                <div class="card">
-                                    <div class="card-body">
-                                        <h5 class="card-title">
-                                            <i class="fas fa-chart-bar me-2"></i>
-                                            Scores
-                                        </h5>
-                                        ${scoresHtml}
-                                    </div>
-                                </div>
-                            `;
-                            document.getElementById('columns-container').appendChild(scoresDiv);
-                        }
-                    }
-
-                    // Show success message
-                    const successDiv = document.createElement('div');
-                    successDiv.className = 'alert alert-success mt-4';
-                    successDiv.innerHTML = '<i class="fas fa-check-circle me-2"></i>All columns processed successfully!';
-                    document.getElementById('columns-container').appendChild(successDiv);
-
-                } catch (error) {
-                    console.error('Error:', error);
-                    // Show error message
-                    document.querySelectorAll('.column-results').forEach(div => {
-                        div.innerHTML = `
-                            <div class="alert alert-danger mt-2">
-                                <i class="fas fa-exclamation-circle me-2"></i>
-                                <small>${error.message}</small>
-                            </div>
-                        `;
-                    });
-                } finally {
-                    // Restore button state
-                    button.disabled = false;
-                    button.innerHTML = originalContent;
-                }
-            });
-        </script>
-    </body>
-    </html>
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Cropper.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <!-- Custom JavaScript -->
+    <script src="/static/js/main.js"></script>
+    <script src="/static/js/imageProcessing.js"></script>
+    <script src="/static/js/stages.js"></script>
+    <script src="/static/js/settings.js"></script>
+</body>
+</html>

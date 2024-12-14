@@ -17,73 +17,135 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'jpg', 'jpeg', 'png', 'heic'}
 
-def process_image(image_data, min_width=30, min_height=5, min_aspect_ratio=0.9, max_aspect_ratio=1.2):
-    # Convert image data to numpy array
-    img_np = cv2.imdecode(np.frombuffer(image_data, np.uint8), cv2.IMREAD_COLOR)
-    
-    # Apply perspective correction
-    img_np = adjust_perspective(img_np)
-    
-    # Convert to grayscale
-    gray = cv2.cvtColor(img_np, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.GaussianBlur(gray, (7, 7), 0)
-    thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 21, 5)
-    
-    # Find contours
-    cnts, _ = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    bubble_coords = []
+def process_image(image_data, min_width=20, min_height=4, min_aspect_ratio=0.7, max_aspect_ratio=1.4):
+    print("\n=== Starting Image Processing ===")
+    try:
+        # Convert image data to numpy array
+        img_np = cv2.imdecode(np.frombuffer(image_data, np.uint8), cv2.IMREAD_COLOR)
+        if img_np is None:
+            print("Error: Failed to decode image")
+            return {'success': False, 'error': 'Failed to decode image'}
+        print(f"Image loaded successfully. Shape: {img_np.shape}")
+        
+        # Apply perspective correction
+        try:
+            img_np = adjust_perspective(img_np)
+            print("Applied perspective correction")
+        except Exception as e:
+            print(f"Error in perspective correction: {str(e)}")
+            return {'success': False, 'error': f'Perspective correction failed: {str(e)}'}
+        
+        # Convert to grayscale and enhance contrast
+        try:
+            gray = cv2.cvtColor(img_np, cv2.COLOR_BGR2GRAY)
+            gray = cv2.equalizeHist(gray)  # Enhance contrast
+            print("Converted to grayscale and enhanced contrast")
+        except Exception as e:
+            print(f"Error in grayscale conversion: {str(e)}")
+            return {'success': False, 'error': f'Grayscale conversion failed: {str(e)}'}
+        
+        try:
+            blurred = cv2.GaussianBlur(gray, (5, 5), 0)  # Reduced kernel size
+            thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 2)
+            print("Applied blur and threshold")
+        except Exception as e:
+            print(f"Error in blur/threshold: {str(e)}")
+            return {'success': False, 'error': f'Blur/threshold failed: {str(e)}'}
+        
+        # Morphological operations to clean up the image
+        try:
+            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+            thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+            print("Applied morphological operations")
+        except Exception as e:
+            print(f"Error in morphological operations: {str(e)}")
+            return {'success': False, 'error': f'Morphological operations failed: {str(e)}'}
+        
+        # Find contours
+        try:
+            cnts, _ = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            print(f"Found {len(cnts)} contours")
+            bubble_coords = []
 
-    for c in cnts:
-        (x, y, w, h) = cv2.boundingRect(c)
-        ar = w / float(h)
-        if (w >= min_width and h >= min_height) and ar >= min_aspect_ratio and ar <= max_aspect_ratio:
-            bubble_coords.append((x, y, w, h))
-            cv2.rectangle(img_np, (x, y), (x + w, y + h), (0, 255, 0), 1)
-
-    # Process answer area
-    if bubble_coords:
-        x_min, y_min, x_max, y_max = infer_answer_area_average_size(bubble_coords)
-        if x_min is not None:
-            padding = 15
-            x_min -= padding + 90
-            y_min -= padding
-            x_max += padding
-            y_max += padding
-
-            answer_area_contour = np.array([[x_min, y_min], [x_max, y_min], [x_max, y_max], [x_min, y_max]])
-            warped = four_point_transform(img_np.copy(), answer_area_contour.reshape(4, 2))
-            cv2.rectangle(img_np, (x_min, y_min), (x_max, y_max), (0, 255, 0), 2)
-
-            # Split into columns
-            warped_height, warped_width = warped.shape[:2]
-            column_width = warped_width // 4
-            columns = [
-                warped[0:warped_height, 0:column_width],
-                warped[0:warped_height, column_width:2 * column_width],
-                warped[0:warped_height, 2 * column_width:3 * column_width],
-                warped[0:warped_height, 3 * column_width:warped_width]
-            ]
+            for c in cnts:
+                (x, y, w, h) = cv2.boundingRect(c)
+                ar = w / float(h)
+                
+                # More lenient aspect ratio and size checks
+                if (w >= min_width and h >= min_height) and ar >= min_aspect_ratio and ar <= max_aspect_ratio:
+                    # Additional circularity check
+                    area = cv2.contourArea(c)
+                    perimeter = cv2.arcLength(c, True)
+                    circularity = 4 * np.pi * area / (perimeter * perimeter) if perimeter > 0 else 0
+                    
+                    if circularity > 0.5:  # Check if the contour is reasonably circular
+                        bubble_coords.append((x, y, w, h))
+                        cv2.rectangle(img_np, (x, y), (x + w, y + h), (0, 255, 0), 1)
             
-            header = img_np[0:y_min, 0:img_np.shape[1]]
-            
-            # Convert images to base64
-            _, processed_img_encoded = cv2.imencode('.jpg', img_np)
-            _, warped_encoded = cv2.imencode('.jpg', warped)
-            column_encoded = []
-            for col in columns:
-                _, col_encoded = cv2.imencode('.jpg', col)
-                column_encoded.append(base64.b64encode(col_encoded).decode())
-            _, header_encoded = cv2.imencode('.jpg', header)
-            
-            return {
-                'success': True,
-                'processed_image': base64.b64encode(processed_img_encoded).decode(),
-                'warped_image': base64.b64encode(warped_encoded).decode(),
-                'columns': column_encoded,
-                'header': base64.b64encode(header_encoded).decode()
-            }
-    
-    return {'success': False, 'error': 'No bubbles found or processing failed'}
+            print(f"Found {len(bubble_coords)} bubble coordinates")
+            print(f"Bubble detection parameters: min_width={min_width}, min_height={min_height}, min_aspect_ratio={min_aspect_ratio}, max_aspect_ratio={max_aspect_ratio}")
+        except Exception as e:
+            print(f"Error in contour detection: {str(e)}")
+            return {'success': False, 'error': f'Contour detection failed: {str(e)}'}
+        
+        # Process answer area
+        if bubble_coords:
+            try:
+                x_min, y_min, x_max, y_max = infer_answer_area_average_size(bubble_coords)
+                if x_min is not None:
+                    print(f"Answer area coordinates: x_min={x_min}, y_min={y_min}, x_max={x_max}, y_max={y_max}")
+                    padding = 15
+                    x_min -= padding + 90
+                    y_min -= padding
+                    x_max += padding
+                    y_max += padding
+
+                    answer_area_contour = np.array([[x_min, y_min], [x_max, y_min], [x_max, y_max], [x_min, y_max]])
+                    warped = four_point_transform(img_np.copy(), answer_area_contour.reshape(4, 2))
+                    cv2.rectangle(img_np, (x_min, y_min), (x_max, y_max), (0, 255, 0), 2)
+
+                    # Split into columns
+                    warped_height, warped_width = warped.shape[:2]
+                    column_width = warped_width // 4
+                    columns = [
+                        warped[0:warped_height, 0:column_width],
+                        warped[0:warped_height, column_width:2 * column_width],
+                        warped[0:warped_height, 2 * column_width:3 * column_width],
+                        warped[0:warped_height, 3 * column_width:warped_width]
+                    ]
+                    print(f"Split image into {len(columns)} columns")
+                    
+                    header = img_np[0:y_min, 0:img_np.shape[1]]
+                    
+                    # Convert images to base64
+                    _, processed_img_encoded = cv2.imencode('.jpg', img_np)
+                    _, warped_encoded = cv2.imencode('.jpg', warped)
+                    column_encoded = []
+                    for col in columns:
+                        _, col_encoded = cv2.imencode('.jpg', col)
+                        column_encoded.append(base64.b64encode(col_encoded).decode())
+                    _, header_encoded = cv2.imencode('.jpg', header)
+                    print("Successfully encoded all images to base64")
+                    
+                    return {
+                        'success': True,
+                        'processed_image': base64.b64encode(processed_img_encoded).decode(),
+                        'warped_image': base64.b64encode(warped_encoded).decode(),
+                        'columns': column_encoded,
+                        'header': base64.b64encode(header_encoded).decode()
+                    }
+            except Exception as e:
+                print(f"Error in answer area processing: {str(e)}")
+                return {'success': False, 'error': f'Answer area processing failed: {str(e)}'}
+        
+        print("No bubbles found or processing failed")
+        return {'success': False, 'error': 'No bubbles found or processing failed'}
+        
+    except Exception as e:
+        print(f"Unexpected error in process_image: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return {'success': False, 'error': f'Unexpected error: {str(e)}'}
 
 @app.route('/')
 def index():
@@ -125,22 +187,35 @@ def handle_student_sheet():
         return jsonify({'error': 'Invalid file'}), 400
 
     try:
+        print("\n=== Starting Student Sheet Processing ===")
+        print(f"Processing file: {file.filename}")
+        
         # Get parameters from the request
-        min_width = int(request.form.get('min_width', 30))
-        min_height = int(request.form.get('min_height', 5))
-        min_aspect_ratio = float(request.form.get('min_aspect_ratio', 0.9))
-        max_aspect_ratio = float(request.form.get('max_aspect_ratio', 1.2))
+        min_width = int(request.form.get('min_width', 20))
+        min_height = int(request.form.get('min_height', 4))
+        min_aspect_ratio = float(request.form.get('min_aspect_ratio', 0.7))
+        max_aspect_ratio = float(request.form.get('max_aspect_ratio', 1.4))
+        
+        print(f"Parameters: min_width={min_width}, min_height={min_height}, min_aspect_ratio={min_aspect_ratio}, max_aspect_ratio={max_aspect_ratio}")
         
         # Process the image
         image_data = file.read()
+        print(f"Read image data: {len(image_data)} bytes")
+        
         result = process_image(image_data, min_width, min_height, min_aspect_ratio, max_aspect_ratio)
+        print(f"Process result: {result['success']}")
         
         if result['success']:
             return jsonify(result)
         else:
-            return jsonify({'error': result['error']}), 400
+            error_msg = result.get('error', 'Unknown error during image processing')
+            print(f"Error: {error_msg}")
+            return jsonify({'error': error_msg}), 400
             
     except Exception as e:
+        import traceback
+        print("Exception occurred:")
+        print(traceback.format_exc())
         return jsonify({'error': str(e)}), 500
 
 @app.route('/process_with_gemini', methods=['POST'])

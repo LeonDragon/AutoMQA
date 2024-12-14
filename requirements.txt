@@ -9,6 +9,4 @@ streamlit
 streamlit-cropper
 google.generativeai
 scipy
-Flask-Tailwind==0.2.2
-cropperjs==1.6.1
 flask-cors
