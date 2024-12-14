@@ -271,43 +271,65 @@
 
             <!-- Sidebar -->
             <div class="col-md-3 sidebar">
-                <div id="settings-section">
-                    <h4>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#settingsModal">
+                    <i class="fas fa-cog me-2"></i>
+                    Open Settings
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="settingsModalLabel">
                         <i class="fas fa-sliders-h me-2"></i>
                         Processing Settings
-                    </h4>
-                    <div class="range-container">
-                        <label for="min-width" class="form-label">
-                            <i class="fas fa-arrows-alt-h me-2"></i>
-                            Minimum Width (pixels)
-                        </label>
-                        <input type="range" class="form-range" id="min-width" min="20" max="100" value="30">
-                        <span id="min-width-value">30</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Copy your settings form from the sidebar here -->
+                    <div id="settings-form">
+                        <div class="range-container">
+                            <label for="min-width" class="form-label">
+                                <i class="fas fa-arrows-alt-h me-2"></i>
+                                Minimum Width (pixels)
+                            </label>
+                            <input type="range" class="form-range" id="min-width" min="20" max="100" value="30">
+                            <span id="min-width-value">30</span>
+                        </div>
+                        <div class="range-container">
+                            <label for="min-height" class="form-label">
+                                <i class="fas fa-arrows-alt-v me-2"></i>
+                                Minimum Height (pixels)
+                            </label>
+                            <input type="range" class="form-range" id="min-height" min="1" max="50" value="5">
+                            <span id="min-height-value">5</span>
+                        </div>
+                        <div class="range-container">
+                            <label for="min-aspect-ratio" class="form-label">
+                                <i class="fas fa-compress-alt me-2"></i>
+                                Minimum Aspect Ratio
+                            </label>
+                            <input type="range" class="form-range" id="min-aspect-ratio" min="0.5" max="1.0" step="0.1" value="0.9">
+                            <span id="min-aspect-ratio-value">0.9</span>
+                        </div>
+                        <div class="range-container">
+                            <label for="max-aspect-ratio" class="form-label">
+                                <i class="fas fa-expand-alt me-2"></i>
+                                Maximum Aspect Ratio
+                            </label>
+                            <input type="range" class="form-range" id="max-aspect-ratio" min="1.0" max="1.5" step="0.1" value="1.2">
+                            <span id="max-aspect-ratio-value">1.2</span>
+                        </div>
                     </div>
-                    <div class="range-container">
-                        <label for="min-height" class="form-label">
-                            <i class="fas fa-arrows-alt-v me-2"></i>
-                            Minimum Height (pixels)
-                        </label>
-                        <input type="range" class="form-range" id="min-height" min="1" max="50" value="5">
-                        <span id="min-height-value">5</span>
-                    </div>
-                    <div class="range-container">
-                        <label for="min-aspect-ratio" class="form-label">
-                            <i class="fas fa-compress-alt me-2"></i>
-                            Minimum Aspect Ratio
-                        </label>
-                        <input type="range" class="form-range" id="min-aspect-ratio" min="0.5" max="1.0" step="0.1" value="0.9">
-                        <span id="min-aspect-ratio-value">0.9</span>
-                    </div>
-                    <div class="range-container">
-                        <label for="max-aspect-ratio" class="form-label">
-                            <i class="fas fa-expand-alt me-2"></i>
-                            Maximum Aspect Ratio
-                        </label>
-                        <input type="range" class="form-range" id="max-aspect-ratio" min="1.0" max="1.5" step="0.1" value="1.2">
-                        <span id="max-aspect-ratio-value">1.2</span>
-                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="apply-settings">Apply Settings</button>
                 </div>
             </div>
         </div>

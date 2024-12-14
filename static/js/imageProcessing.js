@@ -350,31 +350,33 @@ document.getElementById('process-all-columns').addEventListener('click', async f
 // Update the proceedToStage3 function
 function proceedToStage3() {
     console.log('=== Stage 3 Transition Started ===');
-    
+    console.log('Column data available:', window.columnData ? 'Yes' : 'No');
+    console.log('Number of columns:', window.columnData ? window.columnData.length : 0);
+    console.log('Header data available:', window.headerData ? 'Yes' : 'No');
+
     // First show stage 3
     showStage(3);
-    
+
     // Get and show the columns section
     const columnsSection = document.getElementById('columns-section');
     if (columnsSection) {
         // Make sure the section is visible
         columnsSection.style.display = 'block';
-        
+
         // Get the containers for columns and header
         const columnsContainer = document.getElementById('columns-container');
         const headerImage = document.getElementById('header-image');
-        
+
+        // Clear any existing content
+        columnsContainer.innerHTML = '';
+
         // Display columns if we have data
         if (window.columnData && window.columnData.length > 0) {
-            // Create row for columns
-            const row = document.createElement('div');
-            row.className = 'row';
-            
             // Create each column
             window.columnData.forEach((column, index) => {
                 const colDiv = document.createElement('div');
-                colDiv.className = 'col-md-3';
-                
+                colDiv.className = 'col-md-3'; // Adjust column width for 4 columns
+
                 colDiv.innerHTML = `
                     <div class="column-preview">
                         <h6>Column ${index + 1}</h6>
@@ -382,17 +384,20 @@ function proceedToStage3() {
                         <div class="column-results mt-2"></div>
                     </div>
                 `;
-                row.appendChild(colDiv);
+                columnsContainer.appendChild(colDiv);
             });
-            
-            // Clear and append to container
-            columnsContainer.innerHTML = '';
-            columnsContainer.appendChild(row);
         }
-        
+
         // Display header image if we have data
         if (headerImage && window.headerData) {
             headerImage.src = `data:image/jpeg;base64,${window.headerData}`;
         }
     }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    const continueButton = document.querySelector("#review-controls .btn-primary");
+    if (continueButton) {
+        continueButton.addEventListener('click', proceedToStage3);
+    }
+});
