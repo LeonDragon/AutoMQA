@@ -6,25 +6,36 @@ function goBack(currentStage) {
         
         // Clear data from current stage
         if (currentStage === 3) {
-            // Clear all images
-            const columnsContainer = document.getElementById('columns-container');
-            const headerImage = document.getElementById('header-image');
-            if (columnsContainer) {
-                columnsContainer.innerHTML = '';
-            }
-            if (headerImage) {
-                headerImage.src = '';
-            }
-            window.columnData = null;
-            document.getElementById('columns-section').style.display = 'none';
-        } else if (currentStage === 4) {
-            const geminiResults = document.getElementById('gemini-results');
-            if (geminiResults) {
-                geminiResults.innerHTML = '';
-            }
+            clearStage2State();
+            showStage(2);
+        } else if (currentStage === 2) {
+            clearStage2State();
+            showStage(1);
         }
     }
 }
+
+// Function to clear state when moving away from stage 2
+function clearStage2State() {
+    processingState.reset();
+    const processedImage = document.getElementById('processed-image');
+    const warpedImage = document.getElementById('warped-image');
+    const reviewControls = document.getElementById('review-controls');
+    if (processedImage) processedImage.src = '';
+    if (warpedImage) warpedImage.src = '';
+    if (reviewControls) reviewControls.style.display = 'none';
+}
+
+// Store processing data in a module-level object instead of window
+const processingState = {
+    columnData: null,
+    headerData: null,
+    reset() {
+        this.columnData = null;
+        this.headerData = null;
+        console.log('Processing state reset');
+    }
+};
 
 // Add back buttons to each stage's HTML through JavaScript
 document.addEventListener('DOMContentLoaded', function() {
@@ -114,15 +125,13 @@ document.getElementById('answer-key-form').addEventListener('submit', async (e) 
 document.getElementById('student-sheet-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     
+    // Clear previous state before processing new sheet
+    clearStage2State();
+    
     // Get references to DOM elements
     const processedImage = document.getElementById('processed-image');
     const warpedImage = document.getElementById('warped-image');
     const reviewControls = document.getElementById('review-controls');
-    
-    // Clear previous results
-    processedImage.src = '';
-    warpedImage.src = '';
-    reviewControls.style.display = 'none';
 
     // Validate file input
     const fileInput = document.getElementById('student-sheet');
@@ -149,7 +158,6 @@ document.getElementById('student-sheet-form').addEventListener('submit', async (
         
         if (data.success) {
             console.log('=== Stage 2 Data Received ===');
-            console.log('Raw data:', data);  // Log the entire response
             console.log('Columns received:', data.columns?.length);
             console.log('Header received:', !!data.header);
 
@@ -161,22 +169,26 @@ document.getElementById('student-sheet-form').addEventListener('submit', async (
                 warpedImage.src = `data:image/jpeg;base64,${data.warped_image}`;
             }
 
-            // Store data for stage 3
+            // Store data in our state management object
             if (data.columns && data.columns.length > 0) {
-                window.columnData = data.columns;
-                console.log('Column data stored in window:', window.columnData.length);
+                processingState.columnData = data.columns;
+                console.log('Column data stored:', processingState.columnData.length);
             } else {
                 console.warn('No column data in response');
             }
             if (data.header) {
-                window.headerData = data.header;
-                console.log('Header data stored in window:', !!window.headerData);
+                processingState.headerData = data.header;
+                console.log('Header data stored:', !!processingState.headerData);
             } else {
                 console.warn('No header data in response');
             }
 
             // Show review controls
             reviewControls.style.display = 'block';
+            
+            // Set up the continue button with our new function
+            setupContinueButton();
+
         } else {
             throw new Error(data.error || 'Failed to process image');
         }
@@ -186,42 +198,54 @@ document.getElementById('student-sheet-form').addEventListener('submit', async (
     }
 });
 
-function displayColumns(columns) {
-    console.log('=== Display Columns Called ===');
-    console.log('Columns to display:', columns?.length);
+// Define the click handler function outside so we can reference it for both adding and removing
+function handleContinueToStage3(e) {
+    console.log('=== Continue Button Clicked ===');
+    e.preventDefault();
     
-    const container = document.getElementById('columns-container');
-    console.log('Container found:', !!container);
-    if (!container || !columns) {
-        console.error('Missing container or columns data');
+    if (!processingState.columnData || processingState.columnData.length === 0) {
+        console.error('No column data available. Please process a student sheet first.');
+        alert('Please process a student sheet first to get the column data.');
         return;
     }
+
+    // First call the base stage transition
+    proceedToStage3();
     
-    container.innerHTML = '';
-    
-    const row = document.createElement('div');
-    row.className = 'row';
-    
-    columns.forEach((column, index) => {
-        console.log(`Creating column ${index + 1}`);
-        const colDiv = document.createElement('div');
-        colDiv.className = 'col-md-3';
+    // Then handle our specific column display logic
+    console.log('Setting up column display...');
+    setTimeout(() => {
+        const columnsSection = document.getElementById('columns-section');
+        if (columnsSection) {
+            // Display columns using the dedicated function
+            displayColumns(processingState.columnData);
+
+            // Handle header image
+            const headerImage = document.getElementById('header-image');
+            if (headerImage && processingState.headerData) {
+                console.log('Setting header image source');
+                headerImage.src = `data:image/jpeg;base64,${processingState.headerData}`;
+            }
+        }
+    }, 100); // Small delay to ensure DOM is ready
+}
+
+// Add a function to set up the continue button
+function setupContinueButton() {
+    console.log('Setting up continue button...');
+    const continueButton = document.getElementById('continue-to-stage3');
+    if (continueButton) {
+        console.log('Found continue button, adding click handler');
+        // Remove any existing listeners first
+        continueButton.removeEventListener('click', handleContinueToStage3);
+        continueButton.addEventListener('click', handleContinueToStage3);
         
-        colDiv.innerHTML = `
-            <div class="column-preview">
-                <h6>Column ${index + 1}</h6>
-                <img src="data:image/jpeg;base64,${column}" 
-                     class="img-fluid"
-                     onload="console.log('Column ${index + 1} image loaded')"
-                     onerror="console.error('Column ${index + 1} image failed to load')">
-                <div class="column-results mt-2"></div>
-            </div>
-        `;
-        row.appendChild(colDiv);
-    });
-    
-    container.appendChild(row);
-    console.log('Display columns completed');
+        // Also add an onclick attribute as a backup
+        continueButton.onclick = handleContinueToStage3;
+        console.log('Click handler added to continue button');
+    } else {
+        console.error('Continue button not found');
+    }
 }
 
 // Handle Gemini processing
@@ -237,7 +261,7 @@ document.getElementById('gemini-form').addEventListener('submit', async (e) => {
             },
             body: JSON.stringify({
                 model_name: modelName,
-                columns: columnData
+                columns: processingState.columnData
             })
         });
         const data = await response.json();
@@ -264,7 +288,7 @@ document.getElementById('gemini-form').addEventListener('submit', async (e) => {
 document.getElementById('process-all-columns').addEventListener('click', async function() {
     console.log('Button clicked - Starting Gemini processing');
     
-    if (!columnData) {
+    if (!processingState.columnData) {
         console.error('No column data available');
         alert('No columns available to process. Please process a student sheet first.');
         return;
@@ -272,8 +296,8 @@ document.getElementById('process-all-columns').addEventListener('click', async f
 
     const modelName = document.getElementById('gemini-model-select').value;
     console.log('Selected model:', modelName);
-    console.log('Column data available:', columnData ? 'Yes' : 'No');
-    console.log('Number of columns:', columnData ? columnData.length : 0);
+    console.log('Column data available:', processingState.columnData ? 'Yes' : 'No');
+    console.log('Number of columns:', processingState.columnData ? processingState.columnData.length : 0);
     
     const button = this;
     
@@ -286,7 +310,7 @@ document.getElementById('process-all-columns').addEventListener('click', async f
         console.log('Preparing API request to /process_all_columns');
         console.log('Request payload:', {
             model_name: modelName,
-            columns: columnData
+            columns: processingState.columnData
         });
         
         const response = await fetch('/process_all_columns', {
@@ -296,7 +320,7 @@ document.getElementById('process-all-columns').addEventListener('click', async f
             },
             body: JSON.stringify({
                 model_name: modelName,
-                columns: columnData
+                columns: processingState.columnData
             })
         });
 
@@ -347,57 +371,128 @@ document.getElementById('process-all-columns').addEventListener('click', async f
     }
 });
 
-// Update the proceedToStage3 function
+// Update proceedToStage3 to use the processingState
 function proceedToStage3() {
     console.log('=== Stage 3 Transition Started ===');
-    console.log('Column data available:', window.columnData ? 'Yes' : 'No');
-    console.log('Number of columns:', window.columnData ? window.columnData.length : 0);
-    console.log('Header data available:', window.headerData ? 'Yes' : 'No');
+    console.log('Column data available:', !!processingState.columnData);
+    console.log('Number of columns:', processingState.columnData ? processingState.columnData.length : 0);
+    console.log('Header data available:', !!processingState.headerData);
+
+    // Check if we have the required data
+    if (!processingState.columnData || processingState.columnData.length === 0) {
+        console.error('No column data available. Please process a student sheet first.');
+        alert('Please process a student sheet first to get the column data.');
+        return;
+    }
 
     // First show stage 3
     showStage(3);
 
-    // Get and show the columns section
-    const columnsSection = document.getElementById('columns-section');
-    if (columnsSection) {
-        // Make sure the section is visible
-        columnsSection.style.display = 'block';
+    // Important: Wait for a moment to ensure DOM is updated after stage change
+    setTimeout(() => {
+        // Get and show the columns section
+        const columnsSection = document.getElementById('columns-section');
+        console.log('Columns section found:', columnsSection ? 'Yes' : 'No');
+        
+        if (columnsSection) {
+            console.log('Making columns section visible');
+            columnsSection.style.display = 'block';
 
-        // Get the containers for columns and header
-        const columnsContainer = document.getElementById('columns-container');
-        const headerImage = document.getElementById('header-image');
+            // Display columns using the dedicated function
+            displayColumns(processingState.columnData);
 
-        // Clear any existing content
-        columnsContainer.innerHTML = '';
-
-        // Display columns if we have data
-        if (window.columnData && window.columnData.length > 0) {
-            // Create each column
-            window.columnData.forEach((column, index) => {
-                const colDiv = document.createElement('div');
-                colDiv.className = 'col-md-3'; // Adjust column width for 4 columns
-
-                colDiv.innerHTML = `
-                    <div class="column-preview">
-                        <h6>Column ${index + 1}</h6>
-                        <img src="data:image/jpeg;base64,${column}" class="img-fluid">
-                        <div class="column-results mt-2"></div>
-                    </div>
-                `;
-                columnsContainer.appendChild(colDiv);
-            });
+            // Handle header image separately
+            const headerImage = document.getElementById('header-image');
+            if (headerImage && processingState.headerData) {
+                console.log('Setting header image source');
+                // Create a new image to preload
+                const tempImg = new Image();
+                tempImg.onload = function() {
+                    headerImage.src = this.src;
+                    console.log('Header image loaded successfully');
+                };
+                tempImg.onerror = function() {
+                    console.error('Failed to load header image');
+                };
+                tempImg.src = `data:image/jpeg;base64,${processingState.headerData}`;
+            } else {
+                console.log('Cannot set header image:', !headerImage ? 'element not found' : 'no header data');
+            }
+        } else {
+            console.error('Could not find columns-section element');
         }
-
-        // Display header image if we have data
-        if (headerImage && window.headerData) {
-            headerImage.src = `data:image/jpeg;base64,${window.headerData}`;
-        }
-    }
+    }, 100); // Small delay to ensure DOM is ready
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    const continueButton = document.querySelector("#review-controls .btn-primary");
-    if (continueButton) {
-        continueButton.addEventListener('click', proceedToStage3);
+// Update displayColumns function to properly handle image loading
+function displayColumns(columns) {
+    console.log('=== Display Columns Called ===');
+    console.log('Columns to display:', columns?.length);
+    
+    const container = document.getElementById('columns-container');
+    console.log('Container found:', !!container);
+    if (!container || !columns) {
+        console.error('Missing container or columns data');
+        return;
     }
-});
+    
+    // Clear existing content
+    container.innerHTML = '';
+    
+    // Create row element
+    const row = document.createElement('div');
+    row.className = 'row';
+    container.appendChild(row);
+    
+    // Track loaded images
+    let loadedImages = 0;
+    const totalImages = columns.length;
+    
+    columns.forEach((column, index) => {
+        console.log(`Creating column ${index + 1}`);
+        const colDiv = document.createElement('div');
+        colDiv.className = 'col-md-3';
+        
+        // Create column preview container
+        const previewDiv = document.createElement('div');
+        previewDiv.className = 'column-preview';
+        
+        // Add heading
+        const heading = document.createElement('h6');
+        heading.textContent = `Column ${index + 1}`;
+        previewDiv.appendChild(heading);
+        
+        // Create and set up image
+        const img = document.createElement('img');
+        img.className = 'img-fluid';
+        
+        // Set up image loading handlers
+        img.onload = function() {
+            console.log(`Column ${index + 1} image loaded successfully`);
+            loadedImages++;
+            if (loadedImages === totalImages) {
+                console.log('All column images loaded');
+            }
+        };
+        
+        img.onerror = function() {
+            console.error(`Failed to load column ${index + 1} image`);
+            loadedImages++;
+        };
+        
+        // Set image source after setting up handlers
+        img.src = `data:image/jpeg;base64,${column}`;
+        previewDiv.appendChild(img);
+        
+        // Add results container
+        const resultsDiv = document.createElement('div');
+        resultsDiv.className = 'column-results mt-2';
+        previewDiv.appendChild(resultsDiv);
+        
+        // Add everything to the column
+        colDiv.appendChild(previewDiv);
+        row.appendChild(colDiv);
+    });
+    
+    console.log('Display columns setup completed');
+}

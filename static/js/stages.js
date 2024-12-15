@@ -45,11 +45,15 @@ function proceedToStage2() {
 }
 
 function proceedToStage3() {
+    console.log('=== Stage 3 Base Transition ===');
     // Show the columns section
-    document.getElementById('columns-section').style.display = 'block';
-    // Scroll to the columns section
-    document.getElementById('columns-section').scrollIntoView({ behavior: 'smooth' });
-    // Show stage 3
+    const columnsSection = document.getElementById('columns-section');
+    if (columnsSection) {
+        columnsSection.style.display = 'block';
+        // Scroll to the columns section
+        columnsSection.scrollIntoView({ behavior: 'smooth' });
+    }
+    // Update stage display
     showStage(3);
 }
 
