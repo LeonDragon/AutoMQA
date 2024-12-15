@@ -248,39 +248,150 @@ function setupContinueButton() {
     }
 }
 
+// Function to update results with Gemini response
+function updateGeminiResponse(result) {
+    console.log('Updating Gemini response:', result);
+    
+    if (result && result.all_response) {
+        // Remove any existing response first
+        const existingResponse = document.querySelector('.gemini-response');
+        if (existingResponse) {
+            existingResponse.remove();
+        }
+
+        const allResponseDiv = document.createElement('div');
+        allResponseDiv.className = 'alert alert-secondary mt-4 gemini-response';
+        allResponseDiv.innerHTML = `<h6>Gemini Response:</h6><div class="mt-2">${result.all_response}</div>`;
+        
+        const container = document.getElementById('columns-container');
+        if (container) {
+            container.insertBefore(allResponseDiv, container.firstChild);
+        } else {
+            console.error('columns-container not found');
+        }
+    }
+
+    if (result && result.column_results) {
+        result.column_results.forEach((columnResult, index) => {
+            const columnDivs = document.querySelectorAll('.column-results');
+            if (columnDivs.length > index && columnDivs[index]) {
+                let answersHtml = '<div class="alert alert-info mt-2"><small>';
+                columnResult.forEach((answer, i) => {
+                    answersHtml += `Q${i + 1}: ${answer}<br>`;
+                });
+                answersHtml += '</small></div>';
+                columnDivs[index].innerHTML = answersHtml;
+            }
+        });
+    }
+}
+
 // Handle Gemini processing
 document.getElementById('gemini-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const modelName = document.getElementById('model-select').value;
-
+    
     try {
-        const response = await fetch('/process_with_gemini', {
+        // Show loading state
+        const button = e.target.querySelector('button[type="submit"]');
+        const originalContent = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+
+        const response = await fetch('/process_gemini', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                model_name: modelName,
-                columns: processingState.columnData
+                model: modelName,
+                columns: processingState.columnData,
+                headers: processingState.headerData
             })
         });
-        const data = await response.json();
 
-        if (data.success) {
-            console.log('Received columns:', data.columns?.length);
-            console.log('Received header:', data.header ? 'yes' : 'no');
-            let resultsHtml = '<div class="alert alert-success"><h5>Results:</h5>';
-            for (const [testCode, score] of Object.entries(data.scores)) {
-                resultsHtml += `<p>Test Code ${testCode}: ${score !== null ? score.toFixed(2) + '%' : 'Failed to calculate'}</p>`;
-            }
-            resultsHtml += '</div>';
-            document.getElementById('gemini-results').innerHTML = resultsHtml;
-        } else {
-            throw new Error(data.error);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('Processing result:', result);
+
+        // Update UI with results
+        if (result.success) {
+            // Function to update column results
+            const updateColumnResults = () => {
+                console.log('Full result object:', result); // Debug log
+                console.log('all_responses:', result.all_responses); // Direct access to all_responses
+                
+                // Display all_response in each column
+                const columnDivs = document.querySelectorAll('.column-results');
+                columnDivs.forEach((columnDiv, index) => {
+                    let answersHtml = '<div class="alert alert-info mt-2"><small><pre style="margin: 0;">';
+                    // Get the response for this column
+                    const response = result.all_responses[index];
+                    if (response) {
+                        // Split by comma and join with newlines
+                        const formattedResponse = response.split(',')
+                            .map(answer => answer.trim())
+                            .join('\n');
+                        answersHtml += formattedResponse;
+                    } else {
+                        answersHtml += 'No response available';
+                    }
+                    answersHtml += '</pre></small></div>';
+                    columnDiv.innerHTML = answersHtml;
+                });
+            };
+
+            // Use MutationObserver to wait for .column-results to be added to the DOM
+            const observer = new MutationObserver((mutationsList, observer) => {
+                for (const mutation of mutationsList) {
+                    if (mutation.addedNodes.length) {
+                        const columnResults = document.querySelectorAll('.column-results');
+                        if (columnResults.length === processingState.columnData.length) {
+                            updateColumnResults();
+                            observer.disconnect(); // Stop observing once we've updated the results
+                            break;
+                        }
+                    }
+                }
+            });
+
+            // Start observing the columns-container for added nodes
+            const columnsContainer = document.getElementById('columns-container');
+            observer.observe(columnsContainer, { childList: true, subtree: true });
+
+            // Optional: Fallback in case MutationObserver doesn't work as expected
+            setTimeout(() => {
+                if (document.querySelectorAll('.column-results').length === processingState.columnData.length) {
+                updateColumnResults();
+                observer.disconnect();
+                }
+            }, 2000); // 2 second fallback
+
+            // Show success message
+            const successDiv = document.createElement('div');
+            successDiv.className = 'alert alert-success mt-4';
+            successDiv.innerHTML = '<i class="fas fa-check-circle me-2"></i>All columns processed successfully!';
+            document.getElementById('columns-container').appendChild(successDiv);
         }
     } catch (error) {
-        document.getElementById('gemini-results').innerHTML = 
-            `<div class="alert alert-danger">Error: ${error.message}</div>`;
+        console.error('Error:', error);
+        // Show error message
+        document.querySelectorAll('.column-results').forEach(div => {
+            div.innerHTML = `
+                <div class="alert alert-danger mt-2">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <small>${error.message}</small>
+                </div>
+            `;
+        });
+    } finally {
+        // Reset button state
+        const button = e.target.querySelector('button[type="submit"]');
+        button.disabled = false;
+        button.innerHTML = originalContent;
     }
 });
 
@@ -339,26 +450,26 @@ document.getElementById('process-all-columns').addEventListener('click', async f
         if (result.success) {
             // Function to update column results
             const updateColumnResults = () => {
-                // Display all_response (if you're using the previous suggestion)
-                if (result.all_response) {
-                    const allResponseDiv = document.createElement('div');
-                    allResponseDiv.className = 'alert alert-secondary mt-4';
-                    allResponseDiv.innerHTML = `<h6>All Responses:</h6><pre>${JSON.stringify(result.all_response, null, 2)}</pre>`;
-                    document.getElementById('columns-container').appendChild(allResponseDiv);
-                }
-
-                result.column_results.forEach((columnResult, index) => {
-                    const columnDivs = document.querySelectorAll('.column-results');
-                    if (columnDivs.length > index && columnDivs[index]) {
-                        let answersHtml = '<div class="alert alert-info mt-2"><small>';
-                        columnResult.forEach((answer, i) => {
-                            answersHtml += `Q${i + 1}: ${answer}<br>`;
-                        });
-                        answersHtml += '</small></div>';
-                        columnDivs[index].innerHTML = answersHtml;
+                console.log('Full result object:', result); // Debug log
+                console.log('all_responses:', result.all_responses); // Direct access to all_responses
+                
+                // Display all_response in each column
+                const columnDivs = document.querySelectorAll('.column-results');
+                columnDivs.forEach((columnDiv, index) => {
+                    let answersHtml = '<div class="alert alert-info mt-2"><small><pre style="margin: 0;">';
+                    // Get the response for this column
+                    const response = result.all_responses[index];
+                    if (response) {
+                        // Split by comma and join with newlines
+                        const formattedResponse = response.split(',')
+                            .map(answer => answer.trim())
+                            .join('\n');
+                        answersHtml += formattedResponse;
                     } else {
-                        console.error(`Could not find .column-results element at index ${index}`);
+                        answersHtml += 'No response available';
                     }
+                    answersHtml += '</pre></small></div>';
+                    columnDiv.innerHTML = answersHtml;
                 });
             };
 

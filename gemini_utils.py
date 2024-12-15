@@ -183,6 +183,7 @@ def process_student_answers(columns, model_name, answer_key_path):
                     "associate them with their respective question numbers, and determine the selected answer option (A, B, C, or D). "
                     "Remember to look closely for each question before responding. "
                     "Present the results in the format:\n1: A,\n2: B,\n3: C, ...\n"
+                    "Do not include any introductory or concluding remarks, explanations, interpretations, or summaries. Only provide the answer key in the specified format"
                 ]
 
                 print("+ Sending request to Gemini...")
