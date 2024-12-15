@@ -136,6 +136,8 @@ def process_student_answers(columns, model_name, answer_key_path):
     print(f"Number of columns: {len(columns)}")
     print(f"Answer key path: {answer_key_path}")
 
+    all_responses = []
+
     try:
         with open(answer_key_path, 'r') as f:
             answer_key_data = json.load(f)["answerKeys"]
@@ -190,6 +192,8 @@ def process_student_answers(columns, model_name, answer_key_path):
                 print(response.text)
                 print("----------------")
 
+                all_responses.append(response.text)
+
                 extracted_answers = {} 
                 # try:
                 #     for line in response.text.splitlines():
@@ -223,4 +227,4 @@ def process_student_answers(columns, model_name, answer_key_path):
                 print(f"Expected {len(test_answer_key)} answers, got {len(all_extracted_answers)}")
                 scores[test_code] = None
 
-        return all_extracted_answers, scores
+        return all_extracted_answers, scores, all_responses

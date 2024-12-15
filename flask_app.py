@@ -238,13 +238,14 @@ def handle_gemini_processing():
             col_array = cv2.imdecode(np.frombuffer(col_data, np.uint8), cv2.IMREAD_COLOR)
             column_arrays.append(col_array)
         
-        answers, scores = process_student_answers(column_arrays, model_name, answer_key_path)
+        answers, scores, all_responses = process_student_answers(column_arrays, model_name, answer_key_path)
         
         if answers is not None and scores is not None:
             return jsonify({
                 'success': True,
                 'answers': answers,
-                'scores': {str(k): float(v) if v is not None else None for k, v in scores.items()}
+                'scores': {str(k): float(v) if v is not None else None for k, v in scores.items()},
+                'all_responses': all_responses
             })
         else:
             return jsonify({'error': 'Failed to process answers'}), 400
@@ -294,7 +295,7 @@ def handle_all_columns():
         
         # Process all columns with Gemini
         print("\n=== Starting Gemini Processing ===")
-        all_answers, scores = process_student_answers(column_arrays, model_name, 'answer_keys.json')
+        all_answers, scores, all_responses = process_student_answers(column_arrays, model_name, 'answer_keys.json')
         
         print("\n=== Gemini Processing Complete ===")
         print(f"Answers received: {all_answers is not None}")
@@ -313,7 +314,8 @@ def handle_all_columns():
         return jsonify({
             'success': True,
             'column_results': column_results,
-            'scores': scores
+            'scores': scores,
+            'all_responses': all_responses
         })
         
     except Exception as e:

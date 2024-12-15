@@ -287,6 +287,8 @@ document.getElementById('gemini-form').addEventListener('submit', async (e) => {
 // Add click handler for processing all columns
 document.getElementById('process-all-columns').addEventListener('click', async function() {
     console.log('Button clicked - Starting Gemini processing');
+
+    console.log('++ process_all_columns');
     
     if (!processingState.columnData) {
         console.error('No column data available');
@@ -335,17 +337,56 @@ document.getElementById('process-all-columns').addEventListener('click', async f
 
         // Update UI with results
         if (result.success) {
-            result.column_results.forEach((columnResult, index) => {
-                const columnDiv = document.querySelectorAll('.column-results')[index];
-                if (columnDiv) {
-                    let answersHtml = '<div class="alert alert-info mt-2"><small>';
-                    columnResult.forEach((answer, i) => {
-                        answersHtml += `Q${i + 1}: ${answer}<br>`;
-                    });
-                    answersHtml += '</small></div>';
-                    columnDiv.innerHTML = answersHtml;
+            // Function to update column results
+            const updateColumnResults = () => {
+                // Display all_response (if you're using the previous suggestion)
+                if (result.all_response) {
+                    const allResponseDiv = document.createElement('div');
+                    allResponseDiv.className = 'alert alert-secondary mt-4';
+                    allResponseDiv.innerHTML = `<h6>All Responses:</h6><pre>${JSON.stringify(result.all_response, null, 2)}</pre>`;
+                    document.getElementById('columns-container').appendChild(allResponseDiv);
+                }
+
+                result.column_results.forEach((columnResult, index) => {
+                    const columnDivs = document.querySelectorAll('.column-results');
+                    if (columnDivs.length > index && columnDivs[index]) {
+                        let answersHtml = '<div class="alert alert-info mt-2"><small>';
+                        columnResult.forEach((answer, i) => {
+                            answersHtml += `Q${i + 1}: ${answer}<br>`;
+                        });
+                        answersHtml += '</small></div>';
+                        columnDivs[index].innerHTML = answersHtml;
+                    } else {
+                        console.error(`Could not find .column-results element at index ${index}`);
+                    }
+                });
+            };
+
+            // Use MutationObserver to wait for .column-results to be added to the DOM
+            const observer = new MutationObserver((mutationsList, observer) => {
+                for (const mutation of mutationsList) {
+                    if (mutation.addedNodes.length) {
+                        const columnResults = document.querySelectorAll('.column-results');
+                        if (columnResults.length === processingState.columnData.length) {
+                            updateColumnResults();
+                            observer.disconnect(); // Stop observing once we've updated the results
+                            break;
+                        }
+                    }
                 }
             });
+
+            // Start observing the columns-container for added nodes
+            const columnsContainer = document.getElementById('columns-container');
+            observer.observe(columnsContainer, { childList: true, subtree: true });
+
+            // Optional: Fallback in case MutationObserver doesn't work as expected
+            setTimeout(() => {
+                if (document.querySelectorAll('.column-results').length === processingState.columnData.length) {
+                updateColumnResults();
+                observer.disconnect();
+                }
+            }, 2000); // 2 second fallback
 
             // Show success message
             const successDiv = document.createElement('div');
