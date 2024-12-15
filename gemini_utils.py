@@ -172,7 +172,7 @@ def process_student_answers(columns, model_name, answer_key_path):
                     model_name=model_name,
                     generation_config=generation_config,
                 )
-                print("Created Gemini model instance")
+                print("\n+ Created Gemini model instance")
 
                 prompt = [
                     file,
@@ -183,22 +183,24 @@ def process_student_answers(columns, model_name, answer_key_path):
                     "Present the results in the format:\n1: A,\n2: B,\n3: C, ...\n"
                 ]
 
-                print("Sending request to Gemini...")
+                print("+ Sending request to Gemini...")
                 response = model.generate_content(prompt)
                 print("\nGemini Response:")
+                print("----------------")
                 print(response.text)
+                print("----------------")
 
                 extracted_answers = {} 
-                try:
-                    for line in response.text.splitlines():
-                        q_num, answer = line.split(":")
-                        extracted_answers[int(q_num.strip())] = answer.strip()
-                    print(f"Extracted answers: {extracted_answers}")
-                    all_extracted_answers.extend(list(extracted_answers.values())) 
-                except Exception as e:
-                    print(f"Error extracting answers from Gemini response: {e}")
-                    print("Please make sure the response is in the correct format (e.g., '1: A, 2: B, ...')")
-                    return None, None
+                # try:
+                #     for line in response.text.splitlines():
+                #         q_num, answer = line.split(":")
+                #         extracted_answers[int(q_num.strip())] = answer.strip()
+                #     print(f"Extracted answers: {extracted_answers}")
+                #     all_extracted_answers.extend(list(extracted_answers.values())) 
+                # except Exception as e:
+                #     print(f"Error extracting answers from Gemini response: {e}")
+                #     print("Please make sure the response is in the correct format (e.g., '1: A, 2: B, ...')")
+                #     return None, None
             except Exception as e:
                 print(f"Error processing column {i+1}: {e}")
                 return None, None

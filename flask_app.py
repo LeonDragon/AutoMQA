@@ -38,7 +38,11 @@ def process_image(image_data, min_width=20, min_height=4, min_aspect_ratio=0.7, 
         # Convert to grayscale and enhance contrast
         try:
             gray = cv2.cvtColor(img_np, cv2.COLOR_BGR2GRAY)
-            gray = cv2.equalizeHist(gray)  # Enhance contrast
+            #gray = cv2.equalizeHist(gray)  # Enhance contrast
+            # Method 1: CLAHE (Contrast Limited Adaptive Histogram Equalization)
+            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+            enhanced_gray = clahe.apply(gray)
+
             print("Converted to grayscale and enhanced contrast")
         except Exception as e:
             print(f"Error in grayscale conversion: {str(e)}")
@@ -101,7 +105,8 @@ def process_image(image_data, min_width=20, min_height=4, min_aspect_ratio=0.7, 
                     y_max += padding
 
                     answer_area_contour = np.array([[x_min, y_min], [x_max, y_min], [x_max, y_max], [x_min, y_max]])
-                    warped = four_point_transform(img_np.copy(), answer_area_contour.reshape(4, 2))
+                    #warped = four_point_transform(img_np.copy(), answer_area_contour.reshape(4, 2))
+                    warped = four_point_transform(gray.copy(), answer_area_contour.reshape(4, 2))
                     cv2.rectangle(img_np, (x_min, y_min), (x_max, y_max), (0, 255, 0), 2)
 
                     # Split into columns
