@@ -310,6 +310,8 @@ document.getElementById('gemini-form').addEventListener('submit', async (e) => {
             })
         });
 
+        console.log('Response received:', response.status, response.statusText);
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -319,27 +321,141 @@ document.getElementById('gemini-form').addEventListener('submit', async (e) => {
 
         // Update UI with results
         if (result.success) {
+            // Function to calculate score and correct count
+            const calculateScore = (llmAnswers, groundTruth) => {
+                let correct = 0;
+                let total = Object.keys(groundTruth).length;
+                
+                Object.keys(groundTruth).forEach(qNum => {
+                    if (llmAnswers[qNum] && groundTruth[qNum] === llmAnswers[qNum]) {
+                        correct++;
+                    }
+                });
+                
+                return {
+                    score: ((correct / total) * 100).toFixed(2),
+                    correct: correct,
+                    total: total
+                };
+            };
+
             // Function to update column results
             const updateColumnResults = () => {
-                console.log('Full result object:', result); // Debug log
-                console.log('all_responses:', result.all_responses); // Direct access to all_responses
+                console.log('Full result object:', result);
                 
-                // Display all_response in each column
+                // First, combine all LLM responses into a single object
+                const combinedResponses = {};
+                result.all_responses.forEach(response => {
+                    if (response) {
+                        // Each response is already a JSON object, just merge it
+                        Object.assign(combinedResponses, response);
+                    }
+                });
+                
+                console.log('Combined LLM Responses:', combinedResponses);
+                console.log('Answer Key Data:', result.answer_key_data);
+                
+                // Collect all score results
+                const scoreResults = {};
+                Object.entries(result.answer_key_data).forEach(([examCode, groundTruth]) => {
+                    const scoreResult = calculateScore(combinedResponses, groundTruth);
+                    scoreResults[examCode] = {
+                        score: scoreResult.score,
+                        correct: scoreResult.correct,
+                        total: scoreResult.total
+                    };
+                });
+
+                // Create score messages
+                const scoreMessages = Object.entries(scoreResults)
+                    .map(([examCode, result]) => 
+                        `Exam ${examCode} Score: ${result.score}% (${result.correct}/${result.total} questions)`
+                    )
+                    .join('\n');
+
+                // Log to console
+                console.log(scoreMessages);
+                
+                // Create and show popup dialog with all results
+                const dialog = document.createElement('dialog');
+                dialog.style.cssText = `
+                    border: none;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    padding: 0;
+                    max-width: 500px;
+                    width: 90%;
+                `;
+                
+                dialog.innerHTML = `
+                    <div style="
+                        padding: 20px;
+                        background: white;
+                        border-radius: 8px;
+                    ">
+                        <h3 style="
+                            margin: 0 0 20px 0;
+                            color: #2c3e50;
+                            font-size: 24px;
+                            text-align: center;
+                            border-bottom: 2px solid #eee;
+                            padding-bottom: 10px;
+                        ">Scoring Results</h3>
+                        <div style="
+                            background: #f8f9fa;
+                            padding: 15px;
+                            border-radius: 6px;
+                            margin-bottom: 20px;
+                            font-family: monospace;
+                            font-size: 14px;
+                            line-height: 1.6;
+                        ">${scoreMessages.split('\n').map(msg => `<div>${msg}</div>`).join('')}</div>
+                        <div style="text-align: center;">
+                            <button onclick="this.closest('dialog').close()" style="
+                                background: #007bff;
+                                color: white;
+                                border: none;
+                                padding: 8px 20px;
+                                border-radius: 4px;
+                                cursor: pointer;
+                                font-size: 14px;
+                                transition: background 0.3s;
+                            ">Close</button>
+                        </div>
+                    </div>
+                `;
+
+                // Add hover effect to the close button
+                const closeButton = dialog.querySelector('button');
+                closeButton.addEventListener('mouseover', () => {
+                    closeButton.style.background = '#0056b3';
+                });
+                closeButton.addEventListener('mouseout', () => {
+                    closeButton.style.background = '#007bff';
+                });
+
+                document.body.appendChild(dialog);
+                dialog.showModal();
+                
+                // Display original responses in UI
                 const columnDivs = document.querySelectorAll('.column-results');
                 columnDivs.forEach((columnDiv, index) => {
-                    let answersHtml = '<div class="alert alert-info mt-2"><small><pre style="margin: 0;">';
-                    // Get the response for this column
+                    let answersHtml = '<div class="alert alert-info mt-2"><small>';
                     const response = result.all_responses[index];
                     if (response) {
-                        // Split by comma and join with newlines
-                        const formattedResponse = response.split(',')
-                            .map(answer => answer.trim())
-                            .join('\n');
+                        const formattedResponse = Object.entries(response)
+                            .sort(([a], [b]) => parseInt(a) - parseInt(b))
+                            .map(([num, value]) => {
+                                return `<div class="mb-1">
+                                    <span class="text-primary">${num}:</span>
+                                    <span class="text-success">${value}</span>
+                                </div>`;
+                            }).join('');
                         answersHtml += formattedResponse;
                     } else {
                         answersHtml += 'No response available';
                     }
-                    answersHtml += '</pre></small></div>';
+                    answersHtml += '</small></div>';
                     columnDiv.innerHTML = answersHtml;
                 });
             };
@@ -448,27 +564,141 @@ document.getElementById('process-all-columns').addEventListener('click', async f
 
         // Update UI with results
         if (result.success) {
+            // Function to calculate score and correct count
+            const calculateScore = (llmAnswers, groundTruth) => {
+                let correct = 0;
+                let total = Object.keys(groundTruth).length;
+                
+                Object.keys(groundTruth).forEach(qNum => {
+                    if (llmAnswers[qNum] && groundTruth[qNum] === llmAnswers[qNum]) {
+                        correct++;
+                    }
+                });
+                
+                return {
+                    score: ((correct / total) * 100).toFixed(2),
+                    correct: correct,
+                    total: total
+                };
+            };
+
             // Function to update column results
             const updateColumnResults = () => {
-                console.log('Full result object:', result); // Debug log
-                console.log('all_responses:', result.all_responses); // Direct access to all_responses
+                console.log('Full result object:', result);
                 
-                // Display all_response in each column
+                // First, combine all LLM responses into a single object
+                const combinedResponses = {};
+                result.all_responses.forEach(response => {
+                    if (response) {
+                        // Each response is already a JSON object, just merge it
+                        Object.assign(combinedResponses, response);
+                    }
+                });
+                
+                console.log('Combined LLM Responses:', combinedResponses);
+                console.log('Answer Key Data:', result.answer_key_data);
+                
+                // Collect all score results
+                const scoreResults = {};
+                Object.entries(result.answer_key_data).forEach(([examCode, groundTruth]) => {
+                    const scoreResult = calculateScore(combinedResponses, groundTruth);
+                    scoreResults[examCode] = {
+                        score: scoreResult.score,
+                        correct: scoreResult.correct,
+                        total: scoreResult.total
+                    };
+                });
+
+                // Create score messages
+                const scoreMessages = Object.entries(scoreResults)
+                    .map(([examCode, result]) => 
+                        `Exam ${examCode} Score: ${result.score}% (${result.correct}/${result.total} questions)`
+                    )
+                    .join('\n');
+
+                // Log to console
+                console.log(scoreMessages);
+                
+                // Create and show popup dialog with all results
+                const dialog = document.createElement('dialog');
+                dialog.style.cssText = `
+                    border: none;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    padding: 0;
+                    max-width: 500px;
+                    width: 90%;
+                `;
+                
+                dialog.innerHTML = `
+                    <div style="
+                        padding: 20px;
+                        background: white;
+                        border-radius: 8px;
+                    ">
+                        <h3 style="
+                            margin: 0 0 20px 0;
+                            color: #2c3e50;
+                            font-size: 24px;
+                            text-align: center;
+                            border-bottom: 2px solid #eee;
+                            padding-bottom: 10px;
+                        ">Scoring Results</h3>
+                        <div style="
+                            background: #f8f9fa;
+                            padding: 15px;
+                            border-radius: 6px;
+                            margin-bottom: 20px;
+                            font-family: monospace;
+                            font-size: 14px;
+                            line-height: 1.6;
+                        ">${scoreMessages.split('\n').map(msg => `<div>${msg}</div>`).join('')}</div>
+                        <div style="text-align: center;">
+                            <button onclick="this.closest('dialog').close()" style="
+                                background: #007bff;
+                                color: white;
+                                border: none;
+                                padding: 8px 20px;
+                                border-radius: 4px;
+                                cursor: pointer;
+                                font-size: 14px;
+                                transition: background 0.3s;
+                            ">Close</button>
+                        </div>
+                    </div>
+                `;
+
+                // Add hover effect to the close button
+                const closeButton = dialog.querySelector('button');
+                closeButton.addEventListener('mouseover', () => {
+                    closeButton.style.background = '#0056b3';
+                });
+                closeButton.addEventListener('mouseout', () => {
+                    closeButton.style.background = '#007bff';
+                });
+
+                document.body.appendChild(dialog);
+                dialog.showModal();
+                
+                // Display original responses in UI
                 const columnDivs = document.querySelectorAll('.column-results');
                 columnDivs.forEach((columnDiv, index) => {
-                    let answersHtml = '<div class="alert alert-info mt-2"><small><pre style="margin: 0;">';
-                    // Get the response for this column
+                    let answersHtml = '<div class="alert alert-info mt-2"><small>';
                     const response = result.all_responses[index];
                     if (response) {
-                        // Split by comma and join with newlines
-                        const formattedResponse = response.split(',')
-                            .map(answer => answer.trim())
-                            .join('\n');
+                        const formattedResponse = Object.entries(response)
+                            .sort(([a], [b]) => parseInt(a) - parseInt(b))
+                            .map(([num, value]) => {
+                                return `<div class="mb-1">
+                                    <span class="text-primary">${num}:</span>
+                                    <span class="text-success">${value}</span>
+                                </div>`;
+                            }).join('');
                         answersHtml += formattedResponse;
                     } else {
                         answersHtml += 'No response available';
                     }
-                    answersHtml += '</pre></small></div>';
+                    answersHtml += '</small></div>';
                     columnDiv.innerHTML = answersHtml;
                 });
             };

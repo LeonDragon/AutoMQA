@@ -167,7 +167,7 @@ def process_student_answers(columns, model_name, answer_key_path):
                     "top_p": 0.95,
                     "top_k": 40,
                     "max_output_tokens": 8192,
-                    "response_mime_type": "text/plain",
+                    "response_mime_type": "application/json",
                 }
 
                 model = genai.GenerativeModel(
@@ -182,8 +182,14 @@ def process_student_answers(columns, model_name, answer_key_path):
                     "Detect any marks in the bubbles (fully filled, partially filled, or lightly shaded), "
                     "associate them with their respective question numbers, and determine the selected answer option (A, B, C, or D). "
                     "Remember to look closely for each question before responding. "
-                    "Present the results in the format:\n1: A,\n2: B,\n3: C, ...\n"
-                    "Do not include any introductory or concluding remarks, explanations, interpretations, or summaries. Only provide the answer key in the specified format"
+                    "Present the results in JSON format as follows:\n"
+                    "{\n"
+                    "  \"1\": \"A\",\n"
+                    "  \"2\": \"B\",\n"
+                    "  \"3\": \"C\",\n"
+                    "  ...\n"
+                    "}\n"
+                    "Do not include any introductory or concluding remarks, explanations, interpretations, or summaries. Only provide the answer key in the specified JSON format."
                 ]
 
                 print("+ Sending request to Gemini...")
@@ -193,7 +199,8 @@ def process_student_answers(columns, model_name, answer_key_path):
                 print(response.text)
                 print("----------------")
 
-                all_responses.append(response.text)
+                json_response = json.loads(response.text)
+                all_responses.append(json_response)
 
                 extracted_answers = {} 
                 # try:
@@ -228,4 +235,4 @@ def process_student_answers(columns, model_name, answer_key_path):
                 print(f"Expected {len(test_answer_key)} answers, got {len(all_extracted_answers)}")
                 scores[test_code] = None
 
-        return all_extracted_answers, scores, all_responses
+        return answer_key_data, all_extracted_answers, scores, all_responses

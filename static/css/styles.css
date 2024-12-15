@@ -337,6 +337,10 @@ body {
     margin-left: 10px;
 }
 
+.navbar-custom {
+    background-color: #003087 !important;
+}
+
 #settings-section:hover {
     box-shadow: 0 4px 8px rgba(0,0,0,0.15);
     transition: box-shadow 0.3s ease;
