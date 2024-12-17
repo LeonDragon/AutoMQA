@@ -37,11 +37,66 @@ def process_image(image_data, min_width=20, min_height=4, min_aspect_ratio=0.7, 
         
         # Convert to grayscale and enhance contrast
         try:
+            # 1. Convert to grayscale
             gray = cv2.cvtColor(img_np, cv2.COLOR_BGR2GRAY)
-            #gray = cv2.equalizeHist(gray)  # Enhance contrast
-            # Method 1: CLAHE (Contrast Limited Adaptive Histogram Equalization)
-            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-            enhanced_gray = clahe.apply(gray)
+            
+            # 2. Noise Reduction (100%)
+            denoised = cv2.fastNlMeansDenoising(gray, None, h=30, templateWindowSize=7, searchWindowSize=21)
+            
+            # 3. CLAHE for local contrast enhancement
+            clahe = cv2.createCLAHE(clipLimit=5.0, tileGridSize=(8, 8))
+            enhanced_gray = clahe.apply(denoised)
+            
+            # 4. Global contrast enhancement (100%)
+            # Convert to float for better precision
+            enhanced_float = enhanced_gray.astype(float)
+            
+            # Increase contrast by stretching histogram to full range
+            min_val = np.min(enhanced_float)
+            max_val = np.max(enhanced_float)
+            enhanced_float = ((enhanced_float - min_val) / (max_val - min_val)) * 255
+            
+            # 5. Enhance blacks (-100%)
+            # Apply gamma correction to deepen blacks
+            gamma = 4.0  # Adjust this value to control black enhancement
+            enhanced_float = np.power(enhanced_float / 255.0, gamma) * 255.0
+            
+            # 6. Background Whitening
+            # Create a mask for dark regions (potential bubbles)
+            _, bubble_mask = cv2.threshold(enhanced_gray, 127, 255, cv2.THRESH_BINARY_INV)
+            
+            # Dilate the mask slightly to include bubble edges
+            kernel = np.ones((3,3), np.uint8)
+            dilated_mask = cv2.dilate(bubble_mask, kernel, iterations=1)
+            
+            # Create whitened background
+            background = np.full_like(enhanced_float, 255)
+            
+            # Blend the enhanced image with white background
+            alpha = 0.9  # Strength of whitening (higher = more white)
+            enhanced_float = np.where(dilated_mask == 0, 
+                                    enhanced_float * (1 - alpha) + background * alpha,
+                                    enhanced_float)
+            
+            # 7. Local contrast enhancement for bubbles
+            # Enhance contrast only in bubble regions
+            bubble_regions = cv2.bitwise_and(enhanced_float.astype(np.uint8), 
+                                           enhanced_float.astype(np.uint8), 
+                                           mask=dilated_mask)
+            bubble_regions = cv2.equalizeHist(bubble_regions)
+            
+            # Combine enhanced bubbles with whitened background
+            enhanced_float = np.where(dilated_mask > 0, 
+                                    bubble_regions, 
+                                    enhanced_float)
+            
+            # Convert back to uint8
+            enhanced_gray = np.clip(enhanced_float, 0, 255).astype(np.uint8)
+            
+            # 8. Final white balance adjustment
+            # Make lighter pixels even lighter
+            white_enhance = np.where(enhanced_gray > 200, 255, enhanced_gray)
+            enhanced_gray = white_enhance.astype(np.uint8)
 
             print("Converted to grayscale and enhanced contrast")
         except Exception as e:
@@ -49,7 +104,7 @@ def process_image(image_data, min_width=20, min_height=4, min_aspect_ratio=0.7, 
             return {'success': False, 'error': f'Grayscale conversion failed: {str(e)}'}
         
         try:
-            blurred = cv2.GaussianBlur(gray, (5, 5), 0)  # Reduced kernel size
+            blurred = cv2.GaussianBlur(enhanced_gray, (5, 5), 0)  # Reduced kernel size
             thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 2)
             print("Applied blur and threshold")
         except Exception as e:
@@ -106,7 +161,7 @@ def process_image(image_data, min_width=20, min_height=4, min_aspect_ratio=0.7, 
 
                     answer_area_contour = np.array([[x_min, y_min], [x_max, y_min], [x_max, y_max], [x_min, y_max]])
                     #warped = four_point_transform(img_np.copy(), answer_area_contour.reshape(4, 2))
-                    warped = four_point_transform(gray.copy(), answer_area_contour.reshape(4, 2))
+                    warped = four_point_transform(enhanced_gray.copy(), answer_area_contour.reshape(4, 2))
                     cv2.rectangle(img_np, (x_min, y_min), (x_max, y_max), (0, 255, 0), 2)
 
                     # Split into columns
