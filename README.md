@@ -13,6 +13,8 @@ AutoMQA is a Flask-based web application that automates the grading of multiple-
 
 ![Application Interface](https://github.com/user-attachments/assets/37699322-d593-4584-8b7c-ca767fdef17c)
 
+![image](https://github.com/user-attachments/assets/d39086b6-c748-4b7d-ae6c-d5672ca058c5)
+
 
 
 *Figure 1: Main application interface showing image upload and processing controls*
