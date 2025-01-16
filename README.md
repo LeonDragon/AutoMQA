@@ -1,45 +1,157 @@
 # AutoMQA: Automated Multiple-Choice Assessment
 
-AutoMQA is a tool that leverages Large Language Model (LLM) technology to automate the grading of multiple-choice assessments. It takes an image of a student's answer sheet as input and outputs the student's score.
+AutoMQA is a Flask-based web application that automates the grading of multiple-choice assessments using computer vision and AI. It processes scanned answer sheets, detects and analyzes answer bubbles, and evaluates responses using Gemini AI.
 
 ## Features
 
-* **Automated Grading:**  Eliminates the need for manual grading of multiple-choice tests.
-* **Image Recognition:**  Utilizes Optical Character Recognition (OCR) to process answer sheets from uploaded images.
-* **LLM-Powered Analysis:** Employs LLMs to interpret student responses and match them against the correct answers, even with slight variations or misspellings.
-* **Efficient and Scalable:**  Can handle a large volume of answer sheets, saving time and effort for educators.
-* **Flexible Answer Key:** Supports various answer key formats (e.g., plain text, CSV) for easy integration.
-* **Detailed Reporting:** Provides a breakdown of student performance, including individual question scores and overall accuracy.
-
-## How it Works
-
-1. **Image Upload:**  Users upload an image of the completed answer sheet.
-2. **OCR Processing:** The system uses OCR to extract the student's responses from the image.
-3. **Response Preprocessing:**  LLMs analyze the extracted text, identify answer choices, and standardize formatting for accurate matching.
-4. **Answer Key Matching:** The processed responses are compared against a provided answer key.
-5. **Result Generation:**  The system calculates the student's score and provides a detailed report.
+* **Automated Grading:** Eliminates manual grading of multiple-choice tests
+* **Image Processing:** Uses OpenCV for perspective correction, bubble detection, and image enhancement
+* **AI-Powered Evaluation:** Leverages Gemini AI for accurate answer evaluation
+* **Web Interface:** Provides REST API endpoints for easy integration
+* **File Format Support:** Handles JPG, PNG, and HEIC formats
+* **Detailed Reporting:** Provides processed images, detected answers, and scoring breakdown
 
 ## Technology Stack
 
-* **Python:**  Core programming language for the application.
-* **Optical Character Recognition (OCR):**  Libraries like Tesseract or Google Cloud Vision API are used for text extraction from images.
-* **Large Language Models (LLMs):**  LLMs like GPT-4 are used for understanding and interpreting student responses.
-* **(Optional) Web Framework:**  Flask or Django can be used to build a web interface for the application.
+* **Python 3**
+* **Flask** - Web framework
+* **OpenCV** - Image processing and computer vision
+* **Gemini AI** - Answer evaluation and scoring
+* **NumPy** - Numerical computations
+* **Pillow** - Image manipulation
 
-## Getting Started
+## Installation
 
-1. **Clone the repository:** `git clone https://github.com/your-username/AutoMQA.git`
-2. **Install dependencies:** `pip install -r requirements.txt`
-3. **Set up your answer key:** Create a file (e.g., `answer_key.txt`) containing the correct answers for your assessment. For example: 1. A; 2. B; 3. C
-4. **Run the application:** 
+1. Clone the repository:
 ```bash
-python main.py --image path/to/answer_sheet.jpg --key answer_key.txt
+git clone https://github.com/your-username/AutoMQA.git
+cd AutoMQA
 ```
+
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+3. Set up environment variables:
+```bash
+export FLASK_APP=flask_app.py
+export FLASK_ENV=development
+```
+
+4. Run the application:
+```bash
+flask run
+```
+
+## API Endpoints
+
+### POST /process_answer_key
+Processes the answer key image
+
+**Request:**
+- Multipart form with 'answer_key' file (JPG/PNG/HEIC)
+
+**Response:**
+```json
+{
+  "success": true,
+  "answer_keys": {
+    "1": "A",
+    "2": "B",
+    ...
+  }
+}
+```
+
+### POST /process_student_sheet
+Processes a student answer sheet
+
+**Request:**
+- Multipart form with 'student_sheet' file (JPG/PNG/HEIC)
+- Form parameters:
+  - min_width: Minimum bubble width (default: 20)
+  - min_height: Minimum bubble height (default: 4)
+  - min_aspect_ratio: Minimum bubble aspect ratio (default: 0.7)
+  - max_aspect_ratio: Maximum bubble aspect ratio (default: 1.4)
+
+**Response:**
+```json
+{
+  "success": true,
+  "processed_image": "base64 encoded image",
+  "warped_image": "base64 encoded image",
+  "columns": ["base64 encoded column 1", ...],
+  "header": "base64 encoded header"
+}
+```
+
+### POST /process_with_gemini
+Processes answer columns with Gemini AI
+
+**Request:**
+```json
+{
+  "model_name": "gemini-1.5-flash",
+  "columns": ["base64 encoded column 1", ...]
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "answers": ["A", "B", ...],
+  "scores": {
+    "1": 1.0,
+    "2": 0.0,
+    ...
+  },
+  "all_responses": [
+    "Gemini response 1",
+    ...
+  ]
+}
+```
+
+## File Requirements
+
+* Supported formats: JPG, PNG, HEIC
+* Maximum file size: 16MB
+* Answer sheets should have:
+  - Clear bubble markings
+  - Minimal skew or distortion
+  - Good contrast between bubbles and background
+
+## Example Usage
+
+1. Start the Flask server:
+```bash
+flask run
+```
+
+2. Process an answer key:
+```bash
+curl -X POST -F "answer_key=@answer_key.jpg" http://localhost:5000/process_answer_key
+```
+
+3. Process a student sheet:
+```bash
+curl -X POST -F "student_sheet=@student_sheet.jpg" http://localhost:5000/process_student_sheet
+```
+
+4. Evaluate answers with Gemini:
+```bash
+curl -X POST -H "Content-Type: application/json" -d '{
+  "model_name": "gemini-1.5-flash",
+  "columns": ["base64_column_1", ...]
+}' http://localhost:5000/process_with_gemini
+```
+
 ## Contributing
 
-Contributions are welcome! Please feel free to open issues or submit pull requests.
+Contributions are welcome! Please open issues or submit pull requests.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE)   
- file for details.
+MIT License - See [LICENSE](LICENSE) for details.
