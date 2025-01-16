@@ -11,7 +11,10 @@ AutoMQA is a Flask-based web application that automates the grading of multiple-
 * **File Format Support:** Handles JPG, PNG, and HEIC formats
 * **Detailed Reporting:** Provides processed images, detected answers, and scoring breakdown
 
-![Application Interface](static/images/app_interface.png)
+![Application Interface](https://github.com/user-attachments/assets/37699322-d593-4584-8b7c-ca767fdef17c)
+
+
+
 *Figure 1: Main application interface showing image upload and processing controls*
 
 ## Technology Stack
@@ -151,7 +154,8 @@ curl -X POST -H "Content-Type: application/json" -d '{
 }' http://localhost:5000/process_with_gemini
 ```
 
-![Processing Results](static/images/processing_results.png)
+![[Processing Results](https://github.com/user-attachments/assets/449cb1a9-3b2c-47d9-8e8d-ce17ad6f3f23)
+
 *Figure 2: Example of processed answer sheet with detected bubbles and scoring results*
 
 ## Contributing
