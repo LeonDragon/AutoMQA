@@ -1,8 +1,27 @@
-# AutoMQA: Automated Multiple-Choice Assessment
+<div align="center">
+  <img src="static/images/UEHU_huyhieu.png" alt="AutoMQA Logo" width="150"/>
+
+  # AutoMQA: Automated Multiple-Choice Assessment
+
+  [![GitHub release](https://img.shields.io/github/release/your-username/AutoMQA.svg?style=flat-square)](https://github.com/your-username/AutoMQA/releases)
+  [![License](https://img.shields.io/github/license/your-username/AutoMQA.svg?style=flat-square)](LICENSE)
+  [![GitHub stars](https://img.shields.io/github/stars/your-username/AutoMQA.svg?style=flat-square)](https://github.com/your-username/AutoMQA/stargazers)
+  [![GitHub issues](https://img.shields.io/github/issues/your-username/AutoMQA.svg?style=flat-square)](https://github.com/your-username/AutoMQA/issues)
+
+</div>
+
+## Table of Contents
+- [Features](#features)
+- [Technology Stack](#technology-stack)
+- [Installation](#installation)
+- [API Documentation](#api-documentation)
+- [Usage](#usage)
+- [Contributing](#contributing)
+- [License](#license)
 
 AutoMQA is a Flask-based web application that automates the grading of multiple-choice assessments using computer vision and AI. It processes scanned answer sheets, detects and analyzes answer bubbles, and evaluates responses using Gemini AI.
 
-## Features
+## ✨ Features
 
 * **Automated Grading:** Eliminates manual grading of multiple-choice tests
 * **Image Processing:** Uses OpenCV for perspective correction, bubble detection, and image enhancement
@@ -19,7 +38,7 @@ AutoMQA is a Flask-based web application that automates the grading of multiple-
 
 *Figure 2: Example of processed answer sheet with detected bubbles and scoring results*
 
-## Technology Stack
+## 🛠️ Technology Stack
 
 * **Python 3**
 * **Flask** - Web framework
@@ -28,7 +47,7 @@ AutoMQA is a Flask-based web application that automates the grading of multiple-
 * **NumPy** - Numerical computations
 * **Pillow** - Image manipulation
 
-## Installation
+## 🚀 Installation
 
 1. Clone the repository:
 ```bash
@@ -52,7 +71,7 @@ export FLASK_ENV=development
 flask run
 ```
 
-## API Endpoints
+## 📚 API Documentation
 
 ### POST /process_answer_key
 Processes the answer key image
@@ -122,7 +141,7 @@ Processes answer columns with Gemini AI
 }
 ```
 
-## File Requirements
+## 📝 File Requirements
 
 * Supported formats: JPG, PNG, HEIC
 * Maximum file size: 16MB
@@ -131,7 +150,7 @@ Processes answer columns with Gemini AI
   - Minimal skew or distortion
   - Good contrast between bubbles and background
 
-## Example Usage
+## 💻 Usage
 
 1. Start the Flask server:
 ```bash
@@ -156,10 +175,37 @@ curl -X POST -H "Content-Type: application/json" -d '{
 }' http://localhost:5000/process_with_gemini
 ```
 
-## Contributing
+## 🤝 Contributing
+
+We welcome contributions from the community! Here's how you can help:
+
+### Reporting Issues
+- Check existing issues before creating new ones
+- Provide detailed description of the problem
+- Include steps to reproduce
+- Attach relevant screenshots or logs
+
+### Feature Requests
+- Explain the proposed feature
+- Describe potential use cases
+- Suggest implementation approach if possible
+
+### Pull Requests
+1. Fork the repository
+2. Create a new branch for your feature/bugfix
+3. Write clear commit messages
+4. Add/update tests if applicable
+5. Update documentation
+6. Submit a pull request with detailed description
+
+### Code Style
+- Follow PEP 8 guidelines
+- Use type hints where applicable
+- Write docstrings for public methods
+- Keep functions small and focused
 
 Contributions are welcome! Please open issues or submit pull requests.
 
-## License
+## 📄 License
 
 MIT License - See [LICENSE](LICENSE) for details.
