@@ -621,11 +621,15 @@ document.getElementById('process-all-columns').addEventListener('click', async f
                 });
 
                 // Create score messages
+                const processingTime = result.processing_time ? `\nProcessing Time: ${result.processing_time.toFixed(2)} seconds` : '';
+                const tokenUsage = result.token_usage ? 
+                    `\nToken Usage:\n- Input: ${result.token_usage.input_tokens}\n- Output: ${result.token_usage.output_tokens}` : '';
+                
                 const scoreMessages = Object.entries(scoreResults)
                     .map(([examCode, result]) => 
                         `Exam ${examCode} Score: ${result.score}% (${result.correct}/${result.total} questions)`
                     )
-                    .join('\n');
+                    .join('\n') + processingTime + tokenUsage;
 
                 // Log to console
                 console.log(scoreMessages);
@@ -663,7 +667,12 @@ document.getElementById('process-all-columns').addEventListener('click', async f
                             font-family: monospace;
                             font-size: 14px;
                             line-height: 1.6;
-                        ">${scoreMessages.split('\n').map(msg => `<div>${msg}</div>`).join('')}</div>
+                        ">${scoreMessages.split('\n').map(msg => {
+                            if (msg.includes('Processing Time') || msg.includes('Token Usage')) {
+                                return `<div style="color: #666; margin-top: 10px;">${msg}</div>`;
+                            }
+                            return `<div>${msg}</div>`;
+                        }).join('')}</div>
                         <div style="text-align: center;">
                             <button onclick="this.closest('dialog').close()" style="
                                 background: #007bff;
