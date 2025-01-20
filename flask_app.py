@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from imutils.perspective import four_point_transform
 from helper.perspective_correction import adjust_perspective, adjust_perspective_crop_by_coordinates
 from helper.est_answer_area import infer_answer_area_average_size
-from gemini_utils import process_answer_key, process_student_answers, process_single_column
+from gemini_utils import process_answer_key, process_student_answers, process_single_column, recheck_single_column
 from helper.heic_converter import convert_single_fileBytes_to_img_obj, handle_uploaded_file
 import io
 import os
