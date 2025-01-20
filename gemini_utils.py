@@ -137,9 +137,9 @@ def process_single_column(column_array, model_name, answer_key_path):
         
         # Create generation config
         generation_config = {
-            "temperature": 0,
-            "top_p": 0.95,
-            "top_k": 40,
+            "temperature": 0,  # Set to 0 for deterministic, factual responses
+            "top_p": 1.0,      # Use top_p=1.0 with temperature=0
+            "top_k": 1,        # Use top_k=1 with temperature=0
             "max_output_tokens": 8192,
             "response_mime_type": "application/json",
         }
