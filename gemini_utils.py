@@ -179,14 +179,21 @@ def recheck_single_column(column_array, model_name, answer_key_path):
             "}\n"
             "6. Be more lenient in your interpretation this time\n"
             "7. If you see any marks that could reasonably be interpreted as an answer, include them\n"
-            "8. For any uncertain answers (marked with X), provide a brief reason explaining why:\n"
+            "8. For any uncertain answers (marked with X), provide a brief reason explaining why. Possible reasons include but are not limited to:\n"
             "   - 'No visible mark' if no mark is detected\n"
             "   - 'Multiple marks detected' if more than one bubble is marked\n"
             "   - 'Mark too faint to determine' if the mark is very light\n"
             "   - 'Partial mark detected' if the mark is incomplete\n"
             "   - 'Mark between options' if the mark is between bubbles\n"
             "   - 'Unclear mark shape' if the mark shape is ambiguous\n"
-            "9. Be as specific as possible in your reasoning\n"
+            "   - 'Stray mark interference' if there are marks outside bubbles\n"
+            "   - 'Erasure marks present' if there are signs of erased marks\n"
+            "   - 'Paper damage' if there are tears or smudges\n"
+            "   - 'Shadow interference' if shadows affect visibility\n"
+            "   - 'Reflection interference' if glare affects visibility\n"
+            "   - Any other relevant observation about the mark quality\n"
+            "9. Be as specific as possible in your reasoning, describing exactly what you observe\n"
+            "10. If you notice any patterns or anomalies across multiple questions, note them in your reasoning\n"
         ]
 
         # Get response with usage tracking
