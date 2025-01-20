@@ -132,13 +132,25 @@ def process_answer_key(answer_key_image):
 def recheck_single_column(column_array, model_name, answer_key_path):
     """Recheck a single column with more flexible parameters"""
     try:
+        print(f"\n=== Starting Recheck API Call ===")
+        print(f"Model: {model_name}")
+        print(f"Temperature: 0.7")
+        print(f"Column shape: {column_array.shape}")
+        
         # Use higher temperature for more creative/alternative interpretations
-        return process_single_column(
+        result = process_single_column(
             column_array, 
             model_name, 
             answer_key_path,
             temperature=0.7  # Allow some randomness in interpretation
         )
+        
+        print("\n=== Recheck API Response ===")
+        print(f"Answers: {len(result.get('answers', {}))}")
+        print(f"Scores: {result.get('scores', {})}")
+        print(f"Tokens used: {result.get('tokens', {})}")
+        
+        return result
     except Exception as e:
         return {'error': str(e)}
 
