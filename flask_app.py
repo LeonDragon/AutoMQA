@@ -340,6 +340,8 @@ def handle_gemini_processing():
 def handle_all_columns():
     print("\n=== Received request to /process_all_columns ===")
     try:
+        import time
+        start_time = time.time()
         data = request.json
         print("Request data received:", data is not None)
         
@@ -394,12 +396,17 @@ def handle_all_columns():
         print(f"Number of column results: {len(column_results)}")
         print(f"Scores: {scores}")
         
+        processing_time = time.time() - start_time
+        print(f"\n=== Total Processing Time ===")
+        print(f"Processing completed in {processing_time:.2f} seconds")
+        
         return jsonify({
             'success': True,
             'column_results': column_results,
             'scores': scores,
             'all_responses': all_responses,
-            'answer_key_data': answer_key_data
+            'answer_key_data': answer_key_data,
+            'processing_time': processing_time
         })
         
     except Exception as e:

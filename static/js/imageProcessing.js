@@ -366,12 +366,13 @@ document.getElementById('gemini-form').addEventListener('submit', async (e) => {
                     };
                 });
 
-                // Create score messages
+                // Create score messages with processing time
+                const processingTime = result.processing_time ? `\nProcessing Time: ${result.processing_time.toFixed(2)} seconds` : '';
                 const scoreMessages = Object.entries(scoreResults)
                     .map(([examCode, result]) => 
                         `Exam ${examCode} Score: ${result.score}% (${result.correct}/${result.total} questions)`
                     )
-                    .join('\n');
+                    .join('\n') + processingTime;
 
                 // Log to console
                 console.log(scoreMessages);
@@ -409,7 +410,14 @@ document.getElementById('gemini-form').addEventListener('submit', async (e) => {
                             font-family: monospace;
                             font-size: 14px;
                             line-height: 1.6;
-                        ">${scoreMessages.split('\n').map(msg => `<div>${msg}</div>`).join('')}</div>
+                        ">
+                            ${scoreMessages.split('\n').map(msg => {
+                                if (msg.includes('Processing Time')) {
+                                    return `<div style="color: #666; margin-top: 10px;">${msg}</div>`;
+                                }
+                                return `<div>${msg}</div>`;
+                            }).join('')}
+                        </div>
                         <div style="text-align: center;">
                             <button onclick="this.closest('dialog').close()" style="
                                 background: #007bff;
