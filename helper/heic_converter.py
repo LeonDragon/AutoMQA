@@ -62,6 +62,8 @@ def convert_single_filePath_to_img_obj(heic_path, output_quality=90):
         logging.error(f"Error converting '{heic_path}': {e}")
         return None
 
+from io import BytesIO
+
 def convert_single_fileBytes_to_img_obj(heic_file_bytes, output_quality=90):
     """
     Converts HEIC file bytes to a JPG image object.
@@ -76,7 +78,9 @@ def convert_single_fileBytes_to_img_obj(heic_file_bytes, output_quality=90):
     register_heif_opener()
 
     try:
-        with Image.open(heic_file_bytes) as image:
+        # Create a BytesIO object from the bytes
+        heic_file = BytesIO(heic_file_bytes)
+        with Image.open(heic_file) as image:
             image = image.convert("RGB")  # Ensure it's in RGB mode
             output_image = Image.new("RGB", image.size)
             output_image.paste(image)
