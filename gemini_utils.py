@@ -129,6 +129,19 @@ def process_answer_key(answer_key_image):
             print(f"Error processing answer key: {e}")  # Print error in gemini_utils.py
     return None
 
+def recheck_single_column(column_array, model_name, answer_key_path):
+    """Recheck a single column with more flexible parameters"""
+    try:
+        # Use higher temperature for more creative/alternative interpretations
+        return process_single_column(
+            column_array, 
+            model_name, 
+            answer_key_path,
+            temperature=0.7  # Allow some randomness in interpretation
+        )
+    except Exception as e:
+        return {'error': str(e)}
+
 def process_single_column(column_array, model_name, answer_key_path, temperature=0):
     """Process a single column with Gemini"""
     try:
