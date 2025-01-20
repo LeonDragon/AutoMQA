@@ -221,10 +221,21 @@ def handle_answer_key():
         return jsonify({'error': 'Invalid file'}), 400
 
     try:
-        # Process the answer key
-        image_data = file.read()
-        img_array = np.frombuffer(image_data, np.uint8)
-        answer_key_image = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+        # Handle HEIC conversion if needed
+        if file.filename.lower().endswith('.heic'):
+            # Convert HEIC to JPG in memory
+            img_obj = convert_single_fileBytes_to_img_obj(file.read())
+            if img_obj is None:
+                return jsonify({'error': 'Failed to convert HEIC file'}), 400
+                
+            # Convert PIL Image to numpy array
+            answer_key_image = np.array(img_obj)
+            answer_key_image = cv2.cvtColor(answer_key_image, cv2.COLOR_RGB2BGR)
+        else:
+            # Process regular image formats
+            image_data = file.read()
+            img_array = np.frombuffer(image_data, np.uint8)
+            answer_key_image = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
         
         # The image is already cropped by the frontend, so we can process it directly
         answer_keys = process_answer_key(answer_key_image)
@@ -258,8 +269,21 @@ def handle_student_sheet():
         
         print(f"Parameters: min_width={min_width}, min_height={min_height}, min_aspect_ratio={min_aspect_ratio}, max_aspect_ratio={max_aspect_ratio}")
         
-        # Process the image
-        image_data = file.read()
+        # Handle HEIC conversion if needed
+        if file.filename.lower().endswith('.heic'):
+            # Convert HEIC to JPG in memory
+            img_obj = convert_single_fileBytes_to_img_obj(file.read())
+            if img_obj is None:
+                return jsonify({'error': 'Failed to convert HEIC file'}), 400
+                
+            # Convert PIL Image to numpy array
+            image_np = np.array(img_obj)
+            image_np = cv2.cvtColor(image_np, cv2.COLOR_RGB2BGR)
+            # Convert to bytes for consistent processing
+            image_data = cv2.imencode('.jpg', image_np)[1].tobytes()
+        else:
+            # Process regular image formats
+            image_data = file.read()
         print(f"Read image data: {len(image_data)} bytes")
         
         result = process_image(image_data, min_width, min_height, min_aspect_ratio, max_aspect_ratio)
