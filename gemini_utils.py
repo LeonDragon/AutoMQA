@@ -196,6 +196,14 @@ def process_student_answers(columns, model_name, answer_key_path):
     """Process columns in parallel using ThreadPoolExecutor"""
     from concurrent.futures import ThreadPoolExecutor, as_completed
     
+    # Load answer key data first
+    try:
+        with open(answer_key_path, 'r') as f:
+            answer_key_data = json.load(f)["answerKeys"]
+    except Exception as e:
+        print(f"Error loading answer key: {e}")
+        return None, None, None, None
+    
     results = []
     with ThreadPoolExecutor(max_workers=4) as executor:
         futures = {
