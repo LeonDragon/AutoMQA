@@ -165,8 +165,7 @@ def recheck_single_column(column_array, model_name, answer_key_path):
             "1. Look for any marks you may have missed previously\n"
             "2. Consider alternative interpretations of ambiguous marks\n" 
             "3. Pay special attention to faint or partial marks\n"
-            "4. If you're unsure between two options, choose the more likely one\n"
-            "5. Return results in JSON format with question numbers as keys and answers as values:\n"
+            "4. Return results in JSON format with question numbers as keys and answers as values:\n"
             "{\n"
             "  \"1\": \"A\",  // Clearly marked A\n"
             "  \"2\": \"B\",  // Clearly marked B\n"  
@@ -177,9 +176,7 @@ def recheck_single_column(column_array, model_name, answer_key_path):
             "  \"7\": \"X - Mark between options\",  // Mark between bubbles\n"
             "  ...\n"
             "}\n"
-            "6. Be more lenient in your interpretation this time\n"
-            "7. If you see any marks that could reasonably be interpreted as an answer, include them\n"
-            "8. For any uncertain answers (marked with X), provide a brief reason explaining why. Possible reasons include but are not limited to:\n"
+            "5. For any uncertain answers (marked with X), provide a brief reason explaining why. Possible reasons include but are not limited to:\n"
             "   - 'No visible mark' if no mark is detected\n"
             "   - 'Multiple marks detected' if more than one bubble is marked\n"
             "   - 'Mark too faint to determine' if the mark is very light\n"
@@ -192,8 +189,8 @@ def recheck_single_column(column_array, model_name, answer_key_path):
             "   - 'Shadow interference' if shadows affect visibility\n"
             "   - 'Reflection interference' if glare affects visibility\n"
             "   - Any other relevant observation about the mark quality\n"
-            "9. Be as specific as possible in your reasoning, describing exactly what you observe\n"
-            "10. If you notice any patterns or anomalies across multiple questions, note them in your reasoning\n"
+            "6. Be as specific as possible in your reasoning, describing exactly what you observe\n"
+            "7. If you notice any patterns or anomalies across multiple questions, note them in your reasoning\n"
         ]
 
         # Get response with usage tracking
