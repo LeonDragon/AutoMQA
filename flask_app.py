@@ -303,18 +303,6 @@ def handle_student_sheet():
         print(traceback.format_exc())
         return jsonify({'error': str(e)}), 500
 
-def process_single_column(column_array, model_name, answer_key_path):
-    """Process a single column with Gemini"""
-    try:
-        _, answers, scores, response = process_student_answers([column_array], model_name, answer_key_path)
-        return {
-            'answers': answers,
-            'scores': scores,
-            'response': response
-        }
-    except Exception as e:
-        return {'error': str(e)}
-
 @app.route('/process_with_gemini', methods=['POST'])
 def handle_gemini_processing():
     try:
@@ -330,46 +318,18 @@ def handle_gemini_processing():
             col_array = cv2.imdecode(np.frombuffer(col_data, np.uint8), cv2.IMREAD_COLOR)
             column_arrays.append(col_array)
         
-        # Process columns in parallel
-        results = []
-        with ThreadPoolExecutor(max_workers=4) as executor:
-            futures = {
-                executor.submit(process_single_column, col, model_name, answer_key_path): idx
-                for idx, col in enumerate(column_arrays)
-            }
-            
-            for future in as_completed(futures):
-                idx = futures[future]
-                try:
-                    result = future.result()
-                    results.append((idx, result))
-                except Exception as e:
-                    results.append((idx, {'error': str(e)}))
+        # Process columns using gemini_utils
+        answer_key_data, all_answers, scores, all_responses = process_student_answers(
+            column_arrays, model_name, answer_key_path
+        )
         
-        # Sort results by original column order
-        results.sort(key=lambda x: x[0])
-        
-        # Combine results
-        combined_answers = {}
-        combined_scores = {}
-        all_responses = []
-        has_error = False
-        
-        for idx, result in results:
-            if 'error' in result:
-                has_error = True
-                break
-            combined_answers.update(result['answers'])
-            combined_scores.update(result['scores'])
-            all_responses.extend(result['response'])
-        
-        if has_error:
-            return jsonify({'error': 'Failed to process some columns'}), 400
+        if all_answers is None:
+            return jsonify({'error': 'Failed to process columns'}), 400
             
         return jsonify({
             'success': True,
-            'answers': combined_answers,
-            'scores': {str(k): float(v) if v is not None else None for k, v in combined_scores.items()},
+            'answers': all_answers,
+            'scores': {str(k): float(v) if v is not None else None for k, v in scores.items()},
             'all_responses': all_responses
         })
             

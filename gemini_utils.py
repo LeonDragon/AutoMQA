@@ -129,110 +129,106 @@ def process_answer_key(answer_key_image):
             print(f"Error processing answer key: {e}")  # Print error in gemini_utils.py
     return None
 
-def process_student_answers(columns, model_name, answer_key_path):
-    """Processes the student answer sheet columns using the specified Gemini model and returns the extracted answers and score."""
-    print("\n=== Starting Student Answer Processing ===")
-    print(f"Model: {model_name}")
-    print(f"Number of columns: {len(columns)}")
-    print(f"Answer key path: {answer_key_path}")
-
-    all_responses = []
-
+def process_single_column(column_array, model_name, answer_key_path):
+    """Process a single column with Gemini"""
     try:
+        # Create a new Gemini model instance for each thread
+        genai.configure(api_key=gemini_api_key)
+        
+        # Create generation config
+        generation_config = {
+            "temperature": 0,
+            "top_p": 0.95,
+            "top_k": 40,
+            "max_output_tokens": 8192,
+            "response_mime_type": "application/json",
+        }
+
+        # Create model instance
+        model = genai.GenerativeModel(
+            model_name=model_name,
+            generation_config=generation_config,
+        )
+
+        # Upload image
+        file = upload_to_gemini(column_array, mime_type="image/jpeg")
+
+        # Create prompt
+        prompt = [
+            file,
+            "Extract the selected answers from the provided answer sheet with question numbers. "
+            "Detect any marks in the bubbles (fully filled, partially filled, or lightly shaded), "
+            "associate them with their respective question numbers, and determine the selected answer option (A, B, C, or D). "
+            "Present the results in JSON format as follows:\n"
+            "{\n"
+            "  \"1\": \"A\",\n"
+            "  \"2\": \"B\",\n"
+            "  \"3\": \"C\",\n"
+            "  ...\n"
+            "}\n"
+        ]
+
+        # Get response
+        response = model.generate_content(prompt)
+        json_response = json.loads(response.text)
+
+        # Load answer key
         with open(answer_key_path, 'r') as f:
             answer_key_data = json.load(f)["answerKeys"]
-            print(f"Loaded answer key data: {answer_key_data}")
-    except FileNotFoundError:
-        print(f"Answer key file not found: {answer_key_path}")
-        return None, None
-    except Exception as e:
-        print(f"Error loading answer key: {e}")
-        return None, None
 
-    if not columns:
-        print("No answer columns were detected. Please check the image and try again.")
-        return None, None
-    else:
-        all_extracted_answers = []
-        for i, answer_column in enumerate(columns):
-            print(f"\nProcessing Column {i+1}:")
-            print(f"Column shape: {answer_column.shape}")
-            
-            try:
-                file = upload_to_gemini(answer_column, mime_type="image/jpeg")
-                print("Successfully uploaded column to Gemini")
-
-                generation_config = {
-                    "temperature": 0,
-                    "top_p": 0.95,
-                    "top_k": 40,
-                    "max_output_tokens": 8192,
-                    "response_mime_type": "application/json",
-                }
-
-                model = genai.GenerativeModel(
-                    model_name=model_name,
-                    generation_config=generation_config,
-                )
-                print("\n+ Created Gemini model instance")
-
-                prompt = [
-                    file,
-                    "Extract the selected answers from the provided answer sheet with question numbers. "
-                    "Detect any marks in the bubbles (fully filled, partially filled, or lightly shaded), "
-                    "associate them with their respective question numbers, and determine the selected answer option (A, B, C, or D). "
-                    "Remember to look closely for each question before responding. "
-                    "Present the results in JSON format as follows:\n"
-                    "{\n"
-                    "  \"1\": \"A\",\n"
-                    "  \"2\": \"B\",\n"
-                    "  \"3\": \"C\",\n"
-                    "  ...\n"
-                    "}\n"
-                    "Do not include any introductory or concluding remarks, explanations, interpretations, or summaries. Only provide the answer key in the specified JSON format."
-                ]
-
-                print("+ Sending request to Gemini...")
-                response = model.generate_content(prompt)
-                print("\nGemini Response:")
-                print("----------------")
-                print(response.text)
-                print("----------------")
-
-                json_response = json.loads(response.text)
-                all_responses.append(json_response)
-
-                extracted_answers = {} 
-                # try:
-                #     for line in response.text.splitlines():
-                #         q_num, answer = line.split(":")
-                #         extracted_answers[int(q_num.strip())] = answer.strip()
-                #     print(f"Extracted answers: {extracted_answers}")
-                #     all_extracted_answers.extend(list(extracted_answers.values())) 
-                # except Exception as e:
-                #     print(f"Error extracting answers from Gemini response: {e}")
-                #     print("Please make sure the response is in the correct format (e.g., '1: A, 2: B, ...')")
-                #     return None, None
-            except Exception as e:
-                print(f"Error processing column {i+1}: {e}")
-                return None, None
-
-        print("\nAll columns processed")
-        print(f"Total extracted answers: {len(all_extracted_answers)}")
-        print(f"Answers: {all_extracted_answers}")
-
+        # Calculate scores
         scores = {}
         for test_code, test_answer_key in answer_key_data.items():
-            if len(all_extracted_answers) == len(test_answer_key):
-                correct_answers = sum(a == b for a, b in zip(all_extracted_answers, test_answer_key.values()))
-                score = (correct_answers / len(test_answer_key)) * 100
-                scores[test_code] = score
-                print(f"\nScores for test {test_code}:")
-                print(f"Correct answers: {correct_answers}/{len(test_answer_key)}")
-                print(f"Score: {score}%")
-            else:
-                print(f"\nNumber of extracted answers does not match the answer key for test_code: {test_code}")
-                print(f"Expected {len(test_answer_key)} answers, got {len(all_extracted_answers)}")
-                scores[test_code] = None
+            correct_answers = sum(1 for q_num, answer in json_response.items() 
+                               if str(q_num) in test_answer_key and answer == test_answer_key[str(q_num)])
+            score = (correct_answers / len(test_answer_key)) * 100
+            scores[test_code] = score
 
-        return answer_key_data, all_extracted_answers, scores, all_responses
+        return {
+            'answers': json_response,
+            'scores': scores,
+            'response': json_response
+        }
+    except Exception as e:
+        return {'error': str(e)}
+
+def process_student_answers(columns, model_name, answer_key_path):
+    """Process columns in parallel using ThreadPoolExecutor"""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    
+    results = []
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        futures = {
+            executor.submit(process_single_column, col, model_name, answer_key_path): idx
+            for idx, col in enumerate(columns)
+        }
+        
+        for future in as_completed(futures):
+            idx = futures[future]
+            try:
+                result = future.result()
+                results.append((idx, result))
+            except Exception as e:
+                results.append((idx, {'error': str(e)}))
+    
+    # Sort results by original column order
+    results.sort(key=lambda x: x[0])
+    
+    # Combine results
+    combined_answers = {}
+    combined_scores = {}
+    all_responses = []
+    has_error = False
+    
+    for idx, result in results:
+        if 'error' in result:
+            has_error = True
+            break
+        combined_answers.update(result['answers'])
+        combined_scores.update(result['scores'])
+        all_responses.append(result['response'])
+    
+    if has_error:
+        return None, None, None, None
+        
+    return answer_key_data, list(combined_answers.values()), combined_scores, all_responses
