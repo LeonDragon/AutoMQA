@@ -368,11 +368,14 @@ document.getElementById('gemini-form').addEventListener('submit', async (e) => {
 
                 // Create score messages with processing time
                 const processingTime = result.processing_time ? `\nProcessing Time: ${result.processing_time.toFixed(2)} seconds` : '';
+                const tokenUsage = result.token_usage ? 
+                    `\nToken Usage:\n- Input: ${result.token_usage.input_tokens}\n- Output: ${result.token_usage.output_tokens}` : '';
+                
                 const scoreMessages = Object.entries(scoreResults)
                     .map(([examCode, result]) => 
                         `Exam ${examCode} Score: ${result.score}% (${result.correct}/${result.total} questions)`
                     )
-                    .join('\n') + processingTime;
+                    .join('\n') + processingTime + tokenUsage;
 
                 // Log to console
                 console.log(scoreMessages);
@@ -412,7 +415,7 @@ document.getElementById('gemini-form').addEventListener('submit', async (e) => {
                             line-height: 1.6;
                         ">
                             ${scoreMessages.split('\n').map(msg => {
-                                if (msg.includes('Processing Time')) {
+                                if (msg.includes('Processing Time') || msg.includes('Token Usage')) {
                                     return `<div style="color: #666; margin-top: 10px;">${msg}</div>`;
                                 }
                                 return `<div>${msg}</div>`;

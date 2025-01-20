@@ -380,7 +380,7 @@ def handle_all_columns():
         
         # Process all columns with Gemini
         print("\n=== Starting Gemini Processing ===")
-        answer_key_data, all_answers, scores, all_responses = process_student_answers(column_arrays, model_name, 'answer_keys.json')
+        answer_key_data, all_answers, scores, all_responses, token_usage = process_student_answers(column_arrays, model_name, 'answer_keys.json')
         
         print("\n=== Gemini Processing Complete ===")
         print(f"Answers received: {all_answers is not None}")
@@ -406,7 +406,8 @@ def handle_all_columns():
             'scores': scores,
             'all_responses': all_responses,
             'answer_key_data': answer_key_data,
-            'processing_time': processing_time
+            'processing_time': processing_time,
+            'token_usage': token_usage
         })
         
     except Exception as e:

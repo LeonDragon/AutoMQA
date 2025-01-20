@@ -149,6 +149,10 @@ def process_single_column(column_array, model_name, answer_key_path):
             model_name=model_name,
             generation_config=generation_config,
         )
+        
+        # Initialize token counters
+        input_tokens = 0
+        output_tokens = 0
 
         # Upload image
         file = upload_to_gemini(column_array, mime_type="image/jpeg")
@@ -168,9 +172,14 @@ def process_single_column(column_array, model_name, answer_key_path):
             "}\n"
         ]
 
-        # Get response
+        # Get response with usage tracking
         response = model.generate_content(prompt)
         json_response = json.loads(response.text)
+        
+        # Get token usage from response
+        if hasattr(response, 'usage_metadata'):
+            input_tokens = response.usage_metadata.prompt_token_count
+            output_tokens = response.usage_metadata.candidates_token_count
 
         # Load answer key
         with open(answer_key_path, 'r') as f:
@@ -187,7 +196,11 @@ def process_single_column(column_array, model_name, answer_key_path):
         return {
             'answers': json_response,
             'scores': scores,
-            'response': json_response
+            'response': json_response,
+            'tokens': {
+                'input': input_tokens,
+                'output': output_tokens
+            }
         }
     except Exception as e:
         return {'error': str(e)}
@@ -237,6 +250,13 @@ def process_student_answers(columns, model_name, answer_key_path):
         all_responses.append(result['response'])
     
     if has_error:
-        return None, None, None, None
+        return None, None, None, None, None
         
-    return answer_key_data, list(combined_answers.values()), combined_scores, all_responses
+    # Calculate total token usage
+    total_input_tokens = sum(result.get('tokens', {}).get('input', 0) for _, result in results)
+    total_output_tokens = sum(result.get('tokens', {}).get('output', 0) for _, result in results)
+    
+    return answer_key_data, list(combined_answers.values()), combined_scores, all_responses, {
+        'input_tokens': total_input_tokens,
+        'output_tokens': total_output_tokens
+    }
