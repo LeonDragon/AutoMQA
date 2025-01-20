@@ -336,6 +336,67 @@ def handle_gemini_processing():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/process_single_column', methods=['POST'])
+def handle_single_column():
+    print("\n=== Received request to /process_single_column ===")
+    try:
+        import time
+        start_time = time.time()
+        data = request.json
+        print("Request data received:", data is not None)
+        
+        model_name = data.get('model_name', 'gemini-1.5-flash')
+        column_base64 = data.get('column')
+        column_index = data.get('index')
+        
+        if not column_base64:
+            print("Error: No column provided in request")
+            return jsonify({'error': 'No column provided'}), 400
+            
+        # Convert base64 column to numpy array
+        try:
+            print(f"\nProcessing Column {column_index + 1}:")
+            col_data = base64.b64decode(column_base64)
+            print(f"- Base64 decoded successfully")
+            
+            col_array = cv2.imdecode(np.frombuffer(col_data, np.uint8), cv2.IMREAD_COLOR)
+            if col_array is None:
+                print(f"Error: Failed to decode column {column_index + 1}")
+                raise ValueError(f"Failed to decode column {column_index + 1}")
+                
+            print(f"- Converted to numpy array: shape={col_array.shape}, dtype={col_array.dtype}")
+            
+        except Exception as e:
+            print(f"Error processing column {column_index + 1}: {str(e)}")
+            raise
+        
+        # Process single column with Gemini
+        print("\n=== Starting Gemini Processing ===")
+        result = process_single_column(col_array, model_name, 'answer_keys.json')
+        
+        if 'error' in result:
+            raise ValueError(result['error'])
+            
+        processing_time = time.time() - start_time
+        print(f"\n=== Total Processing Time ===")
+        print(f"Processing completed in {processing_time:.2f} seconds")
+        
+        return jsonify({
+            'success': True,
+            'answers': result['answers'],
+            'scores': result['scores'],
+            'response': result['response'],
+            'processing_time': processing_time,
+            'tokens': result['tokens'],
+            'column_index': column_index
+        })
+        
+    except Exception as e:
+        print(f"\n=== Error in /process_single_column ===")
+        print(f"Error type: {type(e).__name__}")
+        print(f"Error message: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/process_all_columns', methods=['POST'])
 def handle_all_columns():
     print("\n=== Received request to /process_all_columns ===")

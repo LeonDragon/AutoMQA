@@ -178,10 +178,53 @@ body {
 
 .column-preview {
     background: white;
-    padding: 10px;
-    border-radius: 4px;
+    padding: 20px;
+    border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    margin-bottom: 15px;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.column-controls {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.reprocess-btn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.reprocess-btn:hover {
+    background-color: #0056b3;
+}
+
+.reprocess-btn.loading {
+    background-color: #6c757d;
+    cursor: not-allowed;
+}
+
+.reprocess-btn .spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+    margin-right: 6px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }
 
 .column-preview h6 {

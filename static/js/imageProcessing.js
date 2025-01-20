@@ -891,10 +891,108 @@ function displayColumns(columns) {
         resultsDiv.className = 'column-results mt-2';
         previewDiv.appendChild(resultsDiv);
         
+        // Add reprocess button
+        const controlsDiv = document.createElement('div');
+        controlsDiv.className = 'column-controls';
+        
+        const reprocessBtn = document.createElement('button');
+        reprocessBtn.className = 'reprocess-btn';
+        reprocessBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Reprocess';
+        reprocessBtn.onclick = () => reprocessColumn(index, column);
+        
+        controlsDiv.appendChild(reprocessBtn);
+        previewDiv.appendChild(controlsDiv);
+        
         // Add everything to the column
         colDiv.appendChild(previewDiv);
         row.appendChild(colDiv);
     });
     
     console.log('Display columns setup completed');
+}
+
+async function reprocessColumn(index, columnBase64) {
+    const btn = document.querySelectorAll('.reprocess-btn')[index];
+    const originalContent = btn.innerHTML;
+    
+    try {
+        // Show loading state
+        btn.disabled = true;
+        btn.classList.add('loading');
+        btn.innerHTML = '<span class="spinner"></span> Processing...';
+        
+        const response = await fetch('/process_single_column', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                model_name: 'gemini-1.5-flash',
+                column: columnBase64,
+                index: index
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        if (result.success) {
+            // Update the specific column's results
+            const columnResults = document.querySelectorAll('.column-results')[index];
+            if (columnResults) {
+                let answersHtml = '<div class="alert alert-info mt-2"><small>';
+                const response = result.response;
+                if (response) {
+                    const formattedResponse = Object.entries(response)
+                        .sort(([a], [b]) => parseInt(a) - parseInt(b))
+                        .map(([num, value]) => {
+                            return `<div class="mb-1">
+                                <span class="text-primary">${num}:</span>
+                                <span class="text-success">${value}</span>
+                            </div>`;
+                        }).join('');
+                    answersHtml += formattedResponse;
+                } else {
+                    answersHtml += 'No response available';
+                }
+                answersHtml += '</small></div>';
+                columnResults.innerHTML = answersHtml;
+            }
+            
+            // Show success message
+            showToast('Column reprocessed successfully!', 'success');
+        } else {
+            throw new Error(result.error || 'Failed to reprocess column');
+        }
+    } catch (error) {
+        console.error('Error reprocessing column:', error);
+        showToast(`Error: ${error.message}`, 'error');
+    } finally {
+        // Reset button state
+        btn.disabled = false;
+        btn.classList.remove('loading');
+        btn.innerHTML = originalContent;
+    }
+}
+
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 10);
+    
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }, 3000);
 }
