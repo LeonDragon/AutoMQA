@@ -130,27 +130,85 @@ def process_answer_key(answer_key_image):
     return None
 
 def recheck_single_column(column_array, model_name, answer_key_path):
-    """Recheck a single column with more flexible parameters"""
+    """Recheck a single column with different parameters and prompt"""
     try:
         print(f"\n=== Starting Recheck API Call ===")
         print(f"Model: {model_name}")
         print(f"Temperature: 0.7")
         print(f"Column shape: {column_array.shape}")
         
-        # Use higher temperature for more creative/alternative interpretations
-        result = process_single_column(
-            column_array, 
-            model_name, 
-            answer_key_path,
-            temperature=0.7  # Allow some randomness in interpretation
+        # Create a new Gemini model instance for rechecking
+        genai.configure(api_key=gemini_api_key)
+        
+        # Different generation config for rechecking
+        generation_config = {
+            "temperature": 0.7,  # More creative interpretations
+            "top_p": 0.9,        # Wider range of possibilities
+            "top_k": 40,         # Consider more options
+            "max_output_tokens": 8192,
+            "response_mime_type": "application/json",
+        }
+
+        # Create model instance
+        model = genai.GenerativeModel(
+            model_name=model_name,
+            generation_config=generation_config,
         )
         
-        print("\n=== Recheck API Response ===")
-        print(f"Answers: {len(result.get('answers', {}))}")
-        print(f"Scores: {result.get('scores', {})}")
-        print(f"Tokens used: {result.get('tokens', {})}")
+        # Upload image
+        file = upload_to_gemini(column_array, mime_type="image/jpeg")
+
+        # Different prompt for rechecking
+        prompt = [
+            file,
+            "You are rechecking an answer sheet column. Please carefully analyze the image again and: \n"
+            "1. Look for any marks you may have missed previously\n"
+            "2. Consider alternative interpretations of ambiguous marks\n" 
+            "3. Pay special attention to faint or partial marks\n"
+            "4. If you're unsure between two options, choose the more likely one\n"
+            "5. Return results in JSON format with question numbers as keys and answers as values:\n"
+            "{\n"
+            "  \"1\": \"A\",  // Clearly marked A\n"
+            "  \"2\": \"B\",  // Clearly marked B\n"  
+            "  \"3\": \"X\",  // No mark or too faint\n"
+            "  ...\n"
+            "}\n"
+            "6. Be more lenient in your interpretation this time\n"
+            "7. If you see any marks that could reasonably be interpreted as an answer, include them\n"
+        ]
+
+        # Get response with usage tracking
+        response = model.generate_content(prompt)
+        json_response = json.loads(response.text)
         
-        return result
+        # Get token usage from response
+        input_tokens = 0
+        output_tokens = 0
+        if hasattr(response, 'usage_metadata'):
+            input_tokens = response.usage_metadata.prompt_token_count
+            output_tokens = response.usage_metadata.candidates_token_count
+
+        # Load answer key
+        with open(answer_key_path, 'r') as f:
+            answer_key_data = json.load(f)["answerKeys"]
+
+        # Calculate scores
+        scores = {}
+        for test_code, test_answer_key in answer_key_data.items():
+            correct_answers = sum(1 for q_num, answer in json_response.items() 
+                               if str(q_num) in test_answer_key and answer == test_answer_key[str(q_num)])
+            score = (correct_answers / len(test_answer_key)) * 100
+            scores[test_code] = score
+
+        return {
+            'answers': json_response,
+            'scores': scores,
+            'response': json_response,
+            'tokens': {
+                'input': input_tokens,
+                'output': output_tokens
+            }
+        }
     except Exception as e:
         return {'error': str(e)}
 

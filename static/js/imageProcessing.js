@@ -921,7 +921,7 @@ async function reprocessColumn(index, columnBase64) {
         btn.classList.add('loading');
         btn.innerHTML = '<span class="spinner"></span> Processing...';
         
-        const response = await fetch('/recheck_single_column', {
+        const response = await fetch('/process_single_column', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

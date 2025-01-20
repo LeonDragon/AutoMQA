@@ -348,6 +348,7 @@ def handle_single_column():
         model_name = data.get('model_name', 'gemini-1.5-flash')
         column_base64 = data.get('column')
         column_index = data.get('index')
+        is_recheck = data.get('recheck', False)
         
         if not column_base64:
             print("Error: No column provided in request")
@@ -370,9 +371,14 @@ def handle_single_column():
             print(f"Error processing column {column_index + 1}: {str(e)}")
             raise
         
-        # Process single column with Gemini using recheck parameters
-        print("\n=== Starting Gemini Recheck Processing ===")
-        result = recheck_single_column(col_array, model_name, 'answer_keys.json')
+        # Process single column with Gemini
+        print("\n=== Starting Gemini Processing ===")
+        if is_recheck:
+            print("Running in recheck mode")
+            result = recheck_single_column(col_array, model_name, 'answer_keys.json')
+        else:
+            print("Running in standard mode")
+            result = process_single_column(col_array, model_name, 'answer_keys.json')
         
         if 'error' in result:
             raise ValueError(result['error'])
@@ -388,7 +394,8 @@ def handle_single_column():
             'response': result['response'],
             'processing_time': processing_time,
             'tokens': result['tokens'],
-            'column_index': column_index
+            'column_index': column_index,
+            'is_recheck': is_recheck
         })
         
     except Exception as e:
