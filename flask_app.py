@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify, send_file
 import cv2
 import numpy as np
 from PIL import Image, UnidentifiedImageError
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from imutils.perspective import four_point_transform
 from helper.perspective_correction import adjust_perspective, adjust_perspective_crop_by_coordinates
 from helper.est_answer_area import infer_answer_area_average_size
@@ -302,6 +303,18 @@ def handle_student_sheet():
         print(traceback.format_exc())
         return jsonify({'error': str(e)}), 500
 
+def process_single_column(column_array, model_name, answer_key_path):
+    """Process a single column with Gemini"""
+    try:
+        _, answers, scores, response = process_student_answers([column_array], model_name, answer_key_path)
+        return {
+            'answers': answers,
+            'scores': scores,
+            'response': response
+        }
+    except Exception as e:
+        return {'error': str(e)}
+
 @app.route('/process_with_gemini', methods=['POST'])
 def handle_gemini_processing():
     try:
@@ -317,17 +330,48 @@ def handle_gemini_processing():
             col_array = cv2.imdecode(np.frombuffer(col_data, np.uint8), cv2.IMREAD_COLOR)
             column_arrays.append(col_array)
         
-        answer_key_data, answers, scores, all_responses = process_student_answers(column_arrays, model_name, answer_key_path)
+        # Process columns in parallel
+        results = []
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            futures = {
+                executor.submit(process_single_column, col, model_name, answer_key_path): idx
+                for idx, col in enumerate(column_arrays)
+            }
+            
+            for future in as_completed(futures):
+                idx = futures[future]
+                try:
+                    result = future.result()
+                    results.append((idx, result))
+                except Exception as e:
+                    results.append((idx, {'error': str(e)}))
         
-        if answers is not None and scores is not None:
-            return jsonify({
-                'success': True,
-                'answers': answers,
-                'scores': {str(k): float(v) if v is not None else None for k, v in scores.items()},
-                'all_responses': all_responses
-            })
-        else:
-            return jsonify({'error': 'Failed to process answers'}), 400
+        # Sort results by original column order
+        results.sort(key=lambda x: x[0])
+        
+        # Combine results
+        combined_answers = {}
+        combined_scores = {}
+        all_responses = []
+        has_error = False
+        
+        for idx, result in results:
+            if 'error' in result:
+                has_error = True
+                break
+            combined_answers.update(result['answers'])
+            combined_scores.update(result['scores'])
+            all_responses.extend(result['response'])
+        
+        if has_error:
+            return jsonify({'error': 'Failed to process some columns'}), 400
+            
+        return jsonify({
+            'success': True,
+            'answers': combined_answers,
+            'scores': {str(k): float(v) if v is not None else None for k, v in combined_scores.items()},
+            'all_responses': all_responses
+        })
             
     except Exception as e:
         return jsonify({'error': str(e)}), 500
