@@ -370,9 +370,9 @@ def handle_single_column():
             print(f"Error processing column {column_index + 1}: {str(e)}")
             raise
         
-        # Process single column with Gemini
-        print("\n=== Starting Gemini Processing ===")
-        result = process_single_column(col_array, model_name, 'answer_keys.json')
+        # Process single column with Gemini using recheck parameters
+        print("\n=== Starting Gemini Recheck Processing ===")
+        result = recheck_single_column(col_array, model_name, 'answer_keys.json')
         
         if 'error' in result:
             raise ValueError(result['error'])

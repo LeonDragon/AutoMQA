@@ -129,17 +129,17 @@ def process_answer_key(answer_key_image):
             print(f"Error processing answer key: {e}")  # Print error in gemini_utils.py
     return None
 
-def process_single_column(column_array, model_name, answer_key_path):
+def process_single_column(column_array, model_name, answer_key_path, temperature=0):
     """Process a single column with Gemini"""
     try:
         # Create a new Gemini model instance for each thread
         genai.configure(api_key=gemini_api_key)
         
-        # Create generation config
+        # Create generation config with adjustable temperature
         generation_config = {
-            "temperature": 0,  # Set to 0 for deterministic, factual responses
-            "top_p": 1.0,      # Use top_p=1.0 with temperature=0
-            "top_k": 1,        # Use top_k=1 with temperature=0
+            "temperature": temperature,  # Allow some randomness for rechecking
+            "top_p": 0.95,      # Slightly less strict sampling
+            "top_k": 40,        # Wider range of options
             "max_output_tokens": 8192,
             "response_mime_type": "application/json",
         }
