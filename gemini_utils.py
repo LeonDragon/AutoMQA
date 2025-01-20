@@ -160,16 +160,22 @@ def process_single_column(column_array, model_name, answer_key_path):
         # Create prompt
         prompt = [
             file,
-            "Extract the selected answers from the provided answer sheet with question numbers. "
-            "Detect any marks in the bubbles (fully filled, partially filled, or lightly shaded), "
-            "associate them with their respective question numbers, and determine the selected answer option (A, B, C, or D). "
-            "Present the results in JSON format as follows:\n"
+            "You are an expert at reading and interpreting multiple choice answer sheets. "
+            "Carefully analyze the provided image of an answer sheet column and extract the selected answers. "
+            "Follow these guidelines:\n"
+            "1. Each question has 4 bubbles labeled A, B, C, D from left to right\n"
+            "2. Look for any marks in the bubbles - they could be fully filled, partially filled, or lightly shaded\n"
+            "3. If multiple bubbles are marked for a question, choose the darkest/most filled one\n"
+            "4. If no bubbles are marked or the marks are too faint, return 'X' for that question\n"
+            "5. Return results in JSON format with question numbers as keys and answers as values:\n"
             "{\n"
-            "  \"1\": \"A\",\n"
-            "  \"2\": \"B\",\n"
-            "  \"3\": \"C\",\n"
+            "  \"1\": \"A\",  // Clearly marked A\n"
+            "  \"2\": \"B\",  // Clearly marked B\n"  
+            "  \"3\": \"X\",  // No mark or too faint\n"
             "  ...\n"
             "}\n"
+            "6. Be extremely careful with question numbers - double check they are correct\n"
+            "7. If you're unsure about any answer, mark it as 'X' rather than guessing\n"
         ]
 
         # Get response with usage tracking
