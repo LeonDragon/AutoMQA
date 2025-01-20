@@ -260,7 +260,7 @@ def process_single_column(column_array, model_name, answer_key_path, temperature
             "  ...\n"
             "}\n"
             "6. Be extremely careful with question numbers - double check they are correct\n"
-            "7. If you're unsure about any answer, mark it as 'X' rather than guessing\n"
+            "7. If you're unsure about any answer, mark it as 'X' rather than guessing.\n"
         ]
 
         # Get response with usage tracking
