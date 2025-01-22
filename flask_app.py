@@ -484,5 +484,6 @@ def handle_all_columns():
         print(f"Error message: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    # Run the app on all available interfaces and a specified port
+    app.run(host="0.0.0.0", port=5000, debug=True)  # Set debug=False for production
