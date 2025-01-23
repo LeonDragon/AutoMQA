@@ -235,7 +235,8 @@ def process_single_column(column_array, model_name, answer_key_path, temperature
             model_name,
             answer_key_path,
             temperature,
-            get_prompt('experiment_2', 'column_analysis')
+            get_prompt('experiment_2', 'column_analysis'),
+            response_mime_type="text/plain"  # First pass uses text for detailed analysis
         )
         
         if 'error' in initial_result:
@@ -247,7 +248,8 @@ def process_single_column(column_array, model_name, answer_key_path, temperature
             model_name,
             answer_key_path,
             temperature,
-            f"{get_prompt('json_extract', 'json')}\n\nContext from initial analysis:\n{json.dumps(initial_result['response'], indent=2)}"
+            f"{get_prompt('json_extract', 'json')}\n\nContext from initial analysis:\n{json.dumps(initial_result['response'], indent=2)}",
+            response_mime_type="application/json"  # Second pass uses JSON for structured output
         )
         
         if 'error' in json_result:
@@ -269,8 +271,17 @@ def process_single_column(column_array, model_name, answer_key_path, temperature
     except Exception as e:
         return {'error': str(e)}
 
-def _process_with_prompt(column_array, model_name, answer_key_path, temperature, prompt_text):
-    """Internal helper function to process with a specific prompt"""
+def _process_with_prompt(column_array, model_name, answer_key_path, temperature, prompt_text, response_mime_type="application/json"):
+    """Internal helper function to process with a specific prompt
+    
+    Args:
+        column_array: Numpy array of the column image
+        model_name: Name of the Gemini model to use
+        answer_key_path: Path to the answer key JSON file
+        temperature: Temperature parameter for generation
+        prompt_text: The prompt text to use
+        response_mime_type: MIME type for response format ("application/json" or "text/plain")
+    """
     try:
         # Create a new Gemini model instance
         genai.configure(api_key=gemini_api_key)
@@ -281,7 +292,7 @@ def _process_with_prompt(column_array, model_name, answer_key_path, temperature,
             "top_p": 1,
             "top_k": 10,
             "max_output_tokens": 8192,
-            "response_mime_type": "application/json",
+            "response_mime_type": response_mime_type,
         }
 
         # Create model instance
