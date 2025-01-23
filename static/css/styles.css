@@ -338,6 +338,11 @@ body {
 #check-score {
     display: none;
     margin-left: auto;
+    white-space: nowrap;
+}
+
+#process-all-columns + #check-score {
+    margin-left: 10px;
 }
 
 .reprocess-btn:hover {
