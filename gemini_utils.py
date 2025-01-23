@@ -96,10 +96,12 @@ def process_answer_key(answer_key_image):
                 generation_config=generation_config,
             )
 
+            from prompts import get_prompt
+            
             # Construct the prompt with the image
             prompt = [
                 file,
-                "Extract the answer key from the provided image. There are total 60 questions for each test code "
+                get_prompt('default', 'answer_key')
             ]
 
             # Generate the response
@@ -158,25 +160,12 @@ def recheck_single_column(column_array, model_name, answer_key_path):
         # Upload image
         file = upload_to_gemini(column_array, mime_type="image/jpeg")
 
+        from prompts import get_prompt
+            
         # Different prompt for rechecking
         prompt = [
             file,
-            "You are analyzing an answer sheet column to provide detailed reasons for uncertain answers. Please:\n"
-            "1. Carefully examine each question's bubbles\n"
-            "2. For questions marked with X (uncertain), provide a detailed reason explaining why\n"
-            "3. Return results in JSON format with question numbers as keys and reasons as values:\n"
-            "{\n"
-            "  \"3\": \"No visible mark - No discernible mark in any bubble\",\n"
-            "  \"4\": \"Multiple marks detected - Marks in both A and B bubbles\",\n"  
-            "  \"5\": \"Mark too faint to determine - Very light shading in C bubble\",\n"
-            "  \"6\": \"Partial mark detected - Incomplete mark in D bubble\",\n"
-            "  \"7\": \"Mark between options - Mark straddles B and C bubbles\",\n"
-            "  ...\n"
-            "}\n"
-            "4. Only include questions marked with X in the response\n"
-            "5. Be as specific as possible in your reasoning, describing exactly what you observe\n"
-            "6. Do not attempt to guess or infer the correct answer\n"
-            "7. If you notice any patterns or anomalies across multiple questions, note them in your reasoning\n"
+            get_prompt('default', 'recheck_analysis')
         ]
 
         # Get response with usage tracking
@@ -242,25 +231,12 @@ def process_single_column(column_array, model_name, answer_key_path, temperature
         # Upload image
         file = upload_to_gemini(column_array, mime_type="image/jpeg")
 
+        from prompts import get_prompt
+            
         # Create prompt
         prompt = [
             file,
-            "You are an expert at reading and interpreting multiple choice answer sheets. "
-            "Carefully analyze the provided image of an answer sheet column and extract the selected answers. "
-            "Follow these guidelines:\n"
-            "1. Each question has 4 bubbles labeled A, B, C, D from left to right\n"
-            "2. Look for any marks in the bubbles - they could be fully filled, partially filled, or lightly shaded\n"
-            "3. If multiple bubbles are marked for a question, choose the darkest/most filled one\n"
-            "4. If no bubbles are marked or the marks are too faint, return 'X' for that question\n"
-            "5. Return results in JSON format with question numbers as keys and answers as values:\n"
-            "{\n"
-            "  \"1\": \"A\",  // Clearly marked A\n"
-            "  \"2\": \"B\",  // Clearly marked B\n"  
-            "  \"3\": \"X\",  // No mark or too faint\n"
-            "  ...\n"
-            "}\n"
-            "6. Be extremely careful with question numbers - double check they are correct\n"
-            "7. If you're unsure about any answer, mark it as 'X' rather than guessing.\n"
+            get_prompt('default', 'column_analysis')
         ]
 
         # Get response with usage tracking
