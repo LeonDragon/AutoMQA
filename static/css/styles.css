@@ -196,7 +196,7 @@ body {
 }
 
 .column-preview img {
-    max-height: 280px;
+    max-height: 380px;
     object-fit: contain;
     margin-bottom: 15px;
 }
@@ -220,6 +220,7 @@ body {
     flex-direction: column;
     gap: 20px;
     margin-bottom: 30px;
+    height: 70vh; /* Increase height */
 }
 
 .column-row {
@@ -234,7 +235,7 @@ body {
     padding: 10px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    height: 90vh; /* Increase height */
+    height: 70vh; /* Increase height */
     overflow-y: auto;
 }
 
@@ -243,7 +244,7 @@ body {
     padding: 10px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    height: 90vh; /* Increase height */
+    height: 70vh; /* Increase height */
     overflow-y: auto;
     font-size: 0.8em; /* Smaller font */
 }
