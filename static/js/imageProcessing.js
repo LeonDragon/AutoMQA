@@ -448,26 +448,12 @@ document.getElementById('gemini-form').addEventListener('submit', async (e) => {
                 document.body.appendChild(dialog);
                 dialog.showModal();
                 
-                // Display original responses in UI
-                const columnDivs = document.querySelectorAll('.column-results');
-                columnDivs.forEach((columnDiv, index) => {
-                    let answersHtml = '<div class="alert alert-info mt-2"><small>';
-                    const response = result.all_responses[index];
-                    if (response) {
-                        const formattedResponse = Object.entries(response)
-                            .sort(([a], [b]) => parseInt(a) - parseInt(b))
-                            .map(([num, value]) => {
-                                return `<div class="mb-1">
-                                    <span class="text-primary">${num}:</span>
-                                    <span class="text-success">${value}</span>
-                                </div>`;
-                            }).join('');
-                        answersHtml += formattedResponse;
-                    } else {
-                        answersHtml += 'No response available';
+                // Display responses in their respective panels
+                result.all_responses.forEach((response, index) => {
+                    const responsePanel = document.getElementById(`response-panel-${index}`);
+                    if (responsePanel) {
+                        responsePanel.innerHTML = formatResponse(response);
                     }
-                    answersHtml += '</small></div>';
-                    columnDiv.innerHTML = answersHtml;
                 });
             };
 
@@ -841,34 +827,31 @@ function displayColumns(columns) {
     // Clear existing content
     container.innerHTML = '';
     
-    // Create row element
-    const row = document.createElement('div');
-    row.className = 'row';
-    container.appendChild(row);
-    
     // Track loaded images
     let loadedImages = 0;
     const totalImages = columns.length;
     
     columns.forEach((column, index) => {
         console.log(`Creating column ${index + 1}`);
-        const colDiv = document.createElement('div');
-        colDiv.className = 'col-md-3';
         
-        // Create column preview container
-        const previewDiv = document.createElement('div');
-        previewDiv.className = 'column-preview';
+        // Create main row container
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'row column-row mb-4';
         
-        // Add heading
+        // Column Image Section (Left)
+        const imageCol = document.createElement('div');
+        imageCol.className = 'col-md-6';
+        
+        const imageContainer = document.createElement('div');
+        imageContainer.className = 'column-preview';
+        
         const heading = document.createElement('h6');
         heading.textContent = `Column ${index + 1}`;
-        previewDiv.appendChild(heading);
+        imageContainer.appendChild(heading);
         
-        // Create and set up image
         const img = document.createElement('img');
         img.className = 'img-fluid';
         
-        // Set up image loading handlers
         img.onload = function() {
             console.log(`Column ${index + 1} image loaded successfully`);
             loadedImages++;
@@ -882,18 +865,12 @@ function displayColumns(columns) {
             loadedImages++;
         };
         
-        // Set image source after setting up handlers
         img.src = `data:image/jpeg;base64,${column}`;
-        previewDiv.appendChild(img);
+        imageContainer.appendChild(img);
         
-        // Add results container
-        const resultsDiv = document.createElement('div');
-        resultsDiv.className = 'column-results mt-2';
-        previewDiv.appendChild(resultsDiv);
-        
-        // Add reprocess button
+        // Add reprocess button below image
         const controlsDiv = document.createElement('div');
-        controlsDiv.className = 'column-controls';
+        controlsDiv.className = 'column-controls mt-2';
         
         const reprocessBtn = document.createElement('button');
         reprocessBtn.className = 'reprocess-btn';
@@ -901,14 +878,56 @@ function displayColumns(columns) {
         reprocessBtn.onclick = () => reprocessColumn(index, column);
         
         controlsDiv.appendChild(reprocessBtn);
-        previewDiv.appendChild(controlsDiv);
+        imageContainer.appendChild(controlsDiv);
         
-        // Add everything to the column
-        colDiv.appendChild(previewDiv);
-        row.appendChild(colDiv);
+        imageCol.appendChild(imageContainer);
+        
+        // Response Panel Section (Right)
+        const responseCol = document.createElement('div');
+        responseCol.className = 'col-md-6';
+        
+        const responsePanel = document.createElement('div');
+        responsePanel.className = 'response-panel';
+        responsePanel.id = `response-panel-${index}`;
+        
+        // Add initial loading state
+        responsePanel.innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="text-muted mt-2">Waiting for Gemini response...</p>
+            </div>
+        `;
+        
+        responseCol.appendChild(responsePanel);
+        
+        // Add both columns to the row
+        rowDiv.appendChild(imageCol);
+        rowDiv.appendChild(responseCol);
+        
+        // Add row to container
+        container.appendChild(rowDiv);
     });
     
     console.log('Display columns setup completed');
+}
+
+function formatResponse(response) {
+    if (!response) {
+        return '<div class="alert alert-warning">No response available</div>';
+    }
+    
+    return `
+        <div class="response-item">
+            <small class="d-block text-muted mb-2">Gemini Analysis:</small>
+            ${Object.entries(response)
+                .sort(([a], [b]) => parseInt(a) - parseInt(b))
+                .map(([qNum, answer]) => 
+                    `<div class="badge bg-primary me-1 mb-1">Q${qNum}: ${answer}</div>`
+                ).join('')}
+        </div>
+    `;
 }
 
 async function reprocessColumn(index, columnBase64) {
