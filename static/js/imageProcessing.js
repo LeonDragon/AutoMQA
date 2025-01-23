@@ -277,7 +277,7 @@ function updateGeminiResponse(result) {
             if (columnDivs.length > index && columnDivs[index]) {
                 let answersHtml = '<div class="alert alert-info mt-2"><small>';
                 columnResult.forEach((answer, i) => {
-                    answersHtml += `Q${i + 1}: ${answer}<br>`;
+                    answersHtml += `{i + 1}: ${answer}<br>`;
                 });
                 answersHtml += '</small></div>';
                 columnDivs[index].innerHTML = answersHtml;
@@ -915,7 +915,7 @@ function formatResponse(response) {
                     const questionNumber = typeof qNum === 'number' ? index + 1 : qNum;
                     return `
                         <div class="response-question mb-2">
-                            <span class="badge bg-primary me-1">Q${questionNumber}</span>
+                            <span class="badge bg-primary me-1">${questionNumber}</span>
                             <span class="response-answer">${answer}</span>
                         </div>`;
                 })
