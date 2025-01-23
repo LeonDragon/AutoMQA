@@ -225,13 +225,56 @@ def recheck_single_column(column_array, model_name, answer_key_path):
     except Exception as e:
         return {'error': str(e)}
 
-def process_single_column_json(column_array, model_name, answer_key_path, temperature=0):
-    """Process a single column with Gemini using JSON extract prompt"""
+def process_single_column(column_array, model_name, answer_key_path, temperature=0):
+    """Process a single column with Gemini using both analysis and JSON extraction"""
     try:
-        # Create a new Gemini model instance for each thread
+        # First process with the detailed analysis prompt
+        initial_result = _process_with_prompt(
+            column_array, 
+            model_name,
+            answer_key_path,
+            temperature,
+            get_prompt('experiment_2', 'column_analysis')
+        )
+        
+        if 'error' in initial_result:
+            return initial_result
+            
+        # Then process with JSON extraction using initial result as context
+        json_result = _process_with_prompt(
+            column_array,
+            model_name,
+            answer_key_path,
+            temperature,
+            f"{get_prompt('json_extract', 'json')}\n\nContext from initial analysis:\n{json.dumps(initial_result['response'], indent=2)}"
+        )
+        
+        if 'error' in json_result:
+            return json_result
+            
+        # Combine results maintaining the same output structure
+        return {
+            'answers': json_result['answers'],
+            'scores': json_result['scores'],
+            'response': {
+                'initial_analysis': initial_result['response'],
+                'json_extraction': json_result['response']
+            },
+            'tokens': {
+                'input': initial_result['tokens']['input'] + json_result['tokens']['input'],
+                'output': initial_result['tokens']['output'] + json_result['tokens']['output']
+            }
+        }
+    except Exception as e:
+        return {'error': str(e)}
+
+def _process_with_prompt(column_array, model_name, answer_key_path, temperature, prompt_text):
+    """Internal helper function to process with a specific prompt"""
+    try:
+        # Create a new Gemini model instance
         genai.configure(api_key=gemini_api_key)
         
-        # Create generation config with adjustable temperature
+        # Create generation config
         generation_config = {
             "temperature": temperature,
             "top_p": 1,
@@ -253,12 +296,10 @@ def process_single_column_json(column_array, model_name, answer_key_path, temper
         # Upload image
         file = upload_to_gemini(column_array, mime_type="image/jpeg", compress_quality=100)
 
-        from prompts import get_prompt
-            
-        # Create prompt using json_extract
+        # Create prompt
         prompt = [
             file,
-            get_prompt('json_extract', 'json')
+            prompt_text
         ]
 
         # Get response with usage tracking
@@ -269,10 +310,6 @@ def process_single_column_json(column_array, model_name, answer_key_path, temper
         print(response.text)
         
         json_response = json.loads(response.text)
-        
-        # Print parsed JSON response
-        #print("\n=== PARSED JSON RESPONSE ===")
-        #print(json.dumps(json_response, indent=2))
         
         # Get token usage from response
         if hasattr(response, 'usage_metadata'):
@@ -302,8 +339,6 @@ def process_single_column_json(column_array, model_name, answer_key_path, temper
         }
     except Exception as e:
         return {'error': str(e)}
-
-def process_single_column(column_array, model_name, answer_key_path, temperature=0):
     """Process a single column with Gemini"""
     try:
         # Create a new Gemini model instance for each thread
