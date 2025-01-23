@@ -866,12 +866,23 @@ function displayColumns(columns) {
     let loadedImages = 0;
     const totalImages = columns.length;
     
-    columns.forEach((column, index) => {
-        console.log(`Creating column ${index + 1}`);
+    // Create pairs of columns
+    for (let i = 0; i < columns.length; i += 2) {
+        console.log(`Creating columns ${i + 1} and ${i + 2}`);
         
-        // Create main row container
+        // Create main row container for the pair
         const rowDiv = document.createElement('div');
         rowDiv.className = 'column-row';
+        
+        // Create first column pair
+        const columnPair1 = createColumnPair(columns[i], i);
+        rowDiv.appendChild(columnPair1);
+        
+        // Create second column pair if exists
+        if (columns[i + 1]) {
+            const columnPair2 = createColumnPair(columns[i + 1], i + 1);
+            rowDiv.appendChild(columnPair2);
+        }
         
         // Column Image Section (Left)
         const imageCol = document.createElement('div');
@@ -941,8 +952,16 @@ function displayColumns(columns) {
         rowDiv.appendChild(imageCol);
         rowDiv.appendChild(responseCol);
         
-        // Add row to container
+        // Add row with column pairs to container
         container.appendChild(rowDiv);
+    }
+    
+    console.log('Display columns setup completed');
+}
+
+function createColumnPair(column, index) {
+    const pairDiv = document.createElement('div');
+    pairDiv.className = 'column-pair';
     });
     
     console.log('Display columns setup completed');

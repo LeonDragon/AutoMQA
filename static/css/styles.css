@@ -225,7 +225,15 @@ body {
 
 .column-row {
     display: grid;
-    grid-template-columns: 1.5fr 1fr; /* Make column section wider */
+    grid-template-columns: repeat(2, 1fr); /* Two equal columns */
+    gap: 20px;
+    margin-bottom: 20px;
+    align-items: start;
+}
+
+.column-pair {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
     gap: 15px;
     align-items: start;
 }
@@ -235,7 +243,7 @@ body {
     padding: 10px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    height: 70vh; /* Increase height */
+    height: 60vh;
     overflow-y: auto;
 }
 
@@ -244,9 +252,9 @@ body {
     padding: 10px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    height: 70vh; /* Increase height */
+    height: 60vh;
     overflow-y: auto;
-    font-size: 0.8em; /* Smaller font */
+    font-size: 0.8em;
 }
 
 .response-item {
