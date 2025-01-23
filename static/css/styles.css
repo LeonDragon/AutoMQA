@@ -336,24 +336,13 @@ body {
 }
 
 #check-score {
-    display: inline-block !important; /* Force display */
-    visibility: visible;
-    opacity: 1;
-    margin-left: 10px;
-    white-space: nowrap;
+    display: inline-block;
     background-color: #28a745;
     border-color: #28a745;
     padding: 8px 16px;
     font-size: 14px;
     border-radius: 4px;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
-    will-change: opacity, visibility;
-}
-
-#check-score.hidden {
-    visibility: hidden;
-    opacity: 0;
-    pointer-events: none;
+    transition: all 0.2s ease;
 }
 
 #check-score:hover {
@@ -364,17 +353,6 @@ body {
 
 #check-score:active {
     transform: translateY(0);
-}
-
-#process-all-columns + #check-score {
-    margin-left: 10px;
-}
-
-.button-group {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 20px;
 }
 
 .reprocess-btn:hover {
