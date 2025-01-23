@@ -264,7 +264,7 @@ body {
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     height: 70vh;
     overflow-y: auto;
-    font-size: 0.9em;
+    font-size: 1em;
 }
 
 .column-preview img {
