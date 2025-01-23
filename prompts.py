@@ -13,7 +13,15 @@ PROMPTS = {
             "2. Look for any marks in the bubbles - they could be fully filled, partially filled, or lightly shaded\n"
             "3. If multiple bubbles are marked for a question, choose the darkest/most filled one\n"
             "4. If no bubbles are marked or the marks are too faint, return 'X' for that question\n"
-            "5. Return results in JSON format with question numbers as keys and answers as values"
+            "5. Return results in JSON format with question numbers as keys and answers as values:\n"
+            "{\n"
+            "  "1": "A",  // Clearly marked A\n"
+            "  "2": "B",  // Clearly marked B\n"
+            "  "3": "X",  // No mark or too faint\n"
+            "  ...\n"
+            "}\n"
+            "6. Be extremely careful with question numbers - double check they are correct\n"
+            "7. If you're unsure about any answer, mark it as 'X' rather than guessing.\n"
         ),
         'recheck_analysis': (
             "You are analyzing an answer sheet column to provide detailed reasons for uncertain answers. Please:\n"
