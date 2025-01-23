@@ -224,33 +224,33 @@ body {
 
 .column-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
+    grid-template-columns: 1.5fr 1fr; /* Make column section wider */
+    gap: 15px;
     align-items: start;
 }
 
 .column-preview {
     background: white;
-    padding: 15px;
+    padding: 10px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    height: 85vh;
+    height: 90vh; /* Increase height */
     overflow-y: auto;
 }
 
 .response-panel {
     background: white;
-    padding: 15px;
+    padding: 10px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    height: 85vh;
+    height: 90vh; /* Increase height */
     overflow-y: auto;
-    font-size: 0.85em;
+    font-size: 0.8em; /* Smaller font */
 }
 
 .response-item {
-    margin: 2px 0;
-    padding: 4px;
+    margin: 1px 0;
+    padding: 2px;
     white-space: nowrap;
     font-family: monospace;
     line-height: 1;
@@ -259,14 +259,21 @@ body {
 .response-question {
     display: flex;
     align-items: center;
-    gap: 3px;
-    margin: 1px 0;
+    gap: 2px;
+    margin: 0;
     padding: 0;
 }
 
 .response-answer {
-    font-size: 0.85em;
+    font-size: 0.8em; /* Smaller font */
     color: #333;
+}
+
+/* Make badges smaller */
+.badge {
+    padding: 2px 4px !important;
+    font-size: 0.75em !important;
+    min-width: 2em !important;
 }
 
 .badge {
