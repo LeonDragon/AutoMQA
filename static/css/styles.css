@@ -337,12 +337,35 @@ body {
 
 #check-score {
     display: none;
-    margin-left: auto;
+    margin-left: 10px;
     white-space: nowrap;
+    background-color: #28a745;
+    border-color: #28a745;
+    padding: 8px 16px;
+    font-size: 14px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+#check-score:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+    transform: translateY(-1px);
+}
+
+#check-score:active {
+    transform: translateY(0);
 }
 
 #process-all-columns + #check-score {
     margin-left: 10px;
+}
+
+.button-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
 }
 
 .reprocess-btn:hover {
