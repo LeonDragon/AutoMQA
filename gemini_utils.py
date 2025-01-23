@@ -214,42 +214,57 @@ def recheck_single_column(column_array, model_name, answer_key_path):
             score = (correct_answers / len(test_answer_key)) * 100
             scores[test_code] = score
 
-        return {
-            'answers': json_response,
-            'scores': scores,
-            'response': json_response,
-            'tokens': {
-                'input': input_tokens,
-                'output': output_tokens
+        if parse_json:
+            return {
+                'answers': json_response,
+                'scores': scores,
+                'response': json_response,
+                'tokens': {
+                    'input': input_tokens,
+                    'output': output_tokens
+                }
             }
-        }
+        else:
+            # For text responses, just return the raw text
+            return {
+                'response': json_response,
+                'tokens': {
+                    'input': input_tokens,
+                    'output': output_tokens
+                }
+            }
     except Exception as e:
         return {'error': str(e)}
 
 def process_single_column(column_array, model_name, answer_key_path, temperature=0):
     """Process a single column with Gemini using both analysis and JSON extraction"""
     try:
-        # First process with the detailed analysis prompt
+        # First process with the detailed analysis prompt (text/plain)
         initial_result = _process_with_prompt(
             column_array, 
             model_name,
             answer_key_path,
             temperature,
             get_prompt('experiment_2', 'column_analysis'),
-            response_mime_type="text/plain"  # First pass uses text for detailed analysis
+            response_mime_type="text/plain",
+            parse_json=False  # First pass returns plain text
         )
         
         if 'error' in initial_result:
             return initial_result
             
+        # Extract the text response
+        initial_text = initial_result['response']
+        
         # Then process with JSON extraction using initial result as context
         json_result = _process_with_prompt(
             column_array,
             model_name,
             answer_key_path,
             temperature,
-            f"{get_prompt('json_extract', 'json')}\n\nContext from initial analysis:\n{json.dumps(initial_result['response'], indent=2)}",
-            response_mime_type="application/json"  # Second pass uses JSON for structured output
+            f"{get_prompt('json_extract', 'json')}\n\nContext from initial analysis:\n{initial_text}",
+            response_mime_type="application/json",
+            parse_json=True  # Second pass expects JSON
         )
         
         if 'error' in json_result:
@@ -271,7 +286,7 @@ def process_single_column(column_array, model_name, answer_key_path, temperature
     except Exception as e:
         return {'error': str(e)}
 
-def _process_with_prompt(column_array, model_name, answer_key_path, temperature, prompt_text, response_mime_type="application/json"):
+def _process_with_prompt(column_array, model_name, answer_key_path, temperature, prompt_text, response_mime_type="application/json", parse_json=True):
     """Internal helper function to process with a specific prompt
     
     Args:
@@ -281,6 +296,7 @@ def _process_with_prompt(column_array, model_name, answer_key_path, temperature,
         temperature: Temperature parameter for generation
         prompt_text: The prompt text to use
         response_mime_type: MIME type for response format ("application/json" or "text/plain")
+        parse_json: Whether to parse the response as JSON
     """
     try:
         print(prompt_text)
@@ -322,7 +338,15 @@ def _process_with_prompt(column_array, model_name, answer_key_path, temperature,
         print("\n=== RAW GEMINI RESPONSE ===")
         print(response.text)
         
-        json_response = json.loads(response.text)
+        # Handle response based on whether we expect JSON or text
+        if parse_json:
+            try:
+                json_response = json.loads(response.text)
+            except json.JSONDecodeError as e:
+                return {'error': f"Failed to parse JSON response: {str(e)}"}
+        else:
+            # For text responses, store the raw text
+            json_response = response.text
         
         # Get token usage from response
         if hasattr(response, 'usage_metadata'):
