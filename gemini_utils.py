@@ -16,15 +16,20 @@ except FileNotFoundError:
 
 def compress_image(image_np, quality=50):
     """Compress image using OpenCV with specified quality percentage"""
+    # Step 1: Convert the original image_np to a JPEG version (uncompressed)
+    _, original_jpg = cv2.imencode('.jpg', image_np)
+
+    # Step 2: Compress the image with the specified quality
     encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), quality]
     _, image_encoded = cv2.imencode('.jpg', image_np, encode_param)
-    
-    # Calculate compression ratio
-    orig_size = image_np.nbytes
-    compressed_size = len(image_encoded)
-    ratio = compressed_size / orig_size * 100
-    
-    print(f"Compressed image: {orig_size/1024:.1f}KB -> {compressed_size/1024:.1f}KB ({ratio:.1f}%)")
+
+    # Step 3: Calculate compression ratio
+    original_size = len(original_jpg)  # Size of the uncompressed JPEG
+    compressed_size = len(image_encoded)  # Size of the compressed JPEG
+    ratio = compressed_size / original_size * 100
+
+    # Step 4: Print results
+    print(f"Compressed image: {original_size/1024:.1f}KB -> {compressed_size/1024:.1f}KB ({ratio:.1f}%)")
     return image_encoded
 
 def upload_to_gemini(image_np, mime_type=None, compress_quality=50):
@@ -246,7 +251,7 @@ def process_single_column(column_array, model_name, answer_key_path, temperature
         output_tokens = 0
 
         # Upload image
-        file = upload_to_gemini(column_array, mime_type="image/jpeg")
+        file = upload_to_gemini(column_array, mime_type="image/jpeg", compress_quality=99)
 
         from prompts import get_prompt
             
