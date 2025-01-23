@@ -14,9 +14,26 @@ except FileNotFoundError:
     print("API key file not found. Please make sure 'secrets/gemini_api_key.txt' exists.")
     exit()  # Exit if API key is not found
 
-def upload_to_gemini(image_np, mime_type=None):
-    """Uploads the given numpy image to Gemini."""
-    _, image_encoded = cv2.imencode('.jpg', image_np)
+def compress_image(image_np, quality=50):
+    """Compress image using OpenCV with specified quality percentage"""
+    encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), quality]
+    _, image_encoded = cv2.imencode('.jpg', image_np, encode_param)
+    
+    # Calculate compression ratio
+    orig_size = image_np.nbytes
+    compressed_size = len(image_encoded)
+    ratio = compressed_size / orig_size * 100
+    
+    print(f"Compressed image: {orig_size/1024:.1f}KB -> {compressed_size/1024:.1f}KB ({ratio:.1f}%)")
+    return image_encoded
+
+def upload_to_gemini(image_np, mime_type=None, compress_quality=50):
+    """Uploads the given numpy image to Gemini with optional compression"""
+    if compress_quality < 100:
+        image_encoded = compress_image(image_np, compress_quality)
+    else:
+        _, image_encoded = cv2.imencode('.jpg', image_np)
+        
     image_bytes = io.BytesIO(image_encoded) 
     file = genai.upload_file(image_bytes, mime_type=mime_type)
     print(f"Uploaded image as: {file.uri}")
@@ -26,7 +43,7 @@ def process_answer_key(answer_key_image):
     """Processes the uploaded answer key image using Gemini and returns a dictionary of answers."""
     if answer_key_image is not None:
         try:
-            file = upload_to_gemini(answer_key_image, mime_type="image/jpeg")
+            file = upload_to_gemini(answer_key_image, mime_type="image/jpeg", compress_quality=50)
 
             # Create the model
             generation_config = {
@@ -157,8 +174,8 @@ def recheck_single_column(column_array, model_name, answer_key_path):
             generation_config=generation_config,
         )
         
-        # Upload image
-        file = upload_to_gemini(column_array, mime_type="image/jpeg")
+        # Upload image with compression
+        file = upload_to_gemini(column_array, mime_type="image/jpeg", compress_quality=50)
 
         from prompts import get_prompt
             
