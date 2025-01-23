@@ -39,6 +39,14 @@ const processingState = {
 
 // Add back buttons to each stage's HTML through JavaScript
 document.addEventListener('DOMContentLoaded', function() {
+    // Debug check for Check Score button
+    const checkScoreBtn = document.getElementById('check-score');
+    if (!checkScoreBtn) {
+        console.error('Check Score button not found in DOM!');
+    } else {
+        console.log('Check Score button found in DOM');
+    }
+
     // Add back buttons to stages 2, 3, and 4
     const stages = [2, 3, 4];
     stages.forEach(stageNum => {
@@ -483,9 +491,16 @@ document.getElementById('gemini-form').addEventListener('submit', async (e) => {
 
             // Show the Check Score button
             const checkScoreBtn = document.getElementById('check-score');
-            checkScoreBtn.style.display = 'inline-block';
-            checkScoreBtn.style.visibility = 'visible';
-            checkScoreBtn.style.opacity = '1';
+            if (checkScoreBtn) {
+                console.log('Making Check Score button visible');
+                checkScoreBtn.style.display = 'inline-block';
+                checkScoreBtn.style.visibility = 'visible';
+                checkScoreBtn.style.opacity = '1';
+                checkScoreBtn.style.transition = 'all 0.3s ease';
+                checkScoreBtn.classList.add('visible');
+            } else {
+                console.error('Check Score button not found');
+            }
 
             // Show success message
             const successDiv = document.createElement('div');

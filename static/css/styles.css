@@ -336,9 +336,7 @@ body {
 }
 
 #check-score {
-    display: inline-block;
-    visibility: hidden;
-    opacity: 0;
+    display: none; /* Start hidden */
     margin-left: 10px;
     white-space: nowrap;
     background-color: #28a745;
@@ -346,7 +344,13 @@ body {
     padding: 8px 16px;
     font-size: 14px;
     border-radius: 4px;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
+}
+
+#check-score.visible {
+    display: inline-block;
+    visibility: visible;
+    opacity: 1;
 }
 
 #check-score:hover {
