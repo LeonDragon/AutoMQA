@@ -246,6 +246,9 @@ def recheck_single_column(column_array, model_name, answer_key_path, parse_json=
 def process_single_column(column_array, model_name, answer_key_path, temperature=0):
     """Process a single column with Gemini using both analysis and JSON extraction"""
     try:
+        # Upload image once and reuse the file
+        file = upload_to_gemini(column_array, mime_type="image/jpeg", compress_quality=100)
+        
         # First process with the detailed analysis prompt (text/plain)
         initial_result = _process_with_prompt(
             column_array, 
@@ -254,7 +257,8 @@ def process_single_column(column_array, model_name, answer_key_path, temperature
             temperature,
             get_prompt('experiment_2', 'column_analysis'),
             response_mime_type="text/plain",
-            parse_json=False  # First pass returns plain text
+            parse_json=False,  # First pass returns plain text
+            file=file  # Reuse uploaded file
         )
         
         if 'error' in initial_result:
@@ -271,7 +275,8 @@ def process_single_column(column_array, model_name, answer_key_path, temperature
             temperature,
             f"{get_prompt('json_extract', 'json')}\n\nContext from initial analysis:\n{initial_text}",
             response_mime_type="application/json",
-            parse_json=True  # Second pass expects JSON
+            parse_json=True,  # Second pass expects JSON
+            file=file  # Reuse uploaded file
         )
         
         if 'error' in json_result:
@@ -293,7 +298,7 @@ def process_single_column(column_array, model_name, answer_key_path, temperature
     except Exception as e:
         return {'error': str(e)}
 
-def _process_with_prompt(column_array, model_name, answer_key_path, temperature, prompt_text, response_mime_type="application/json", parse_json=True):
+def _process_with_prompt(column_array, model_name, answer_key_path, temperature, prompt_text, response_mime_type="application/json", parse_json=True, file=None):
     """Internal helper function to process with a specific prompt
     
     Args:
@@ -304,6 +309,7 @@ def _process_with_prompt(column_array, model_name, answer_key_path, temperature,
         prompt_text: The prompt text to use
         response_mime_type: MIME type for response format ("application/json" or "text/plain")
         parse_json: Whether to parse the response as JSON
+        file: Pre-uploaded file to reuse (optional)
     """
     try:
         print(prompt_text)
@@ -329,8 +335,9 @@ def _process_with_prompt(column_array, model_name, answer_key_path, temperature,
         input_tokens = 0
         output_tokens = 0
 
-        # Upload image
-        file = upload_to_gemini(column_array, mime_type="image/jpeg", compress_quality=100)
+        # Upload image if not provided
+        if not file:
+            file = upload_to_gemini(column_array, mime_type="image/jpeg", compress_quality=100)
 
         # Create prompt
         prompt = [
