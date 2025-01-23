@@ -337,8 +337,8 @@ body {
 
 #check-score {
     display: inline-block !important; /* Force display */
-    visibility: hidden;
-    opacity: 0;
+    visibility: visible;
+    opacity: 1;
     margin-left: 10px;
     white-space: nowrap;
     background-color: #28a745;
@@ -350,10 +350,10 @@ body {
     will-change: opacity, visibility;
 }
 
-#check-score.visible {
-    visibility: visible !important;
-    opacity: 1 !important;
-    pointer-events: all;
+#check-score.hidden {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
 }
 
 #check-score:hover {

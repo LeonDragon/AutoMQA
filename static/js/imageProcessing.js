@@ -501,13 +501,13 @@ document.getElementById('gemini-form').addEventListener('submit', async (e) => {
                     opacity: window.getComputedStyle(checkScoreBtn).opacity
                 });
                 
-                // Add visible class
-                checkScoreBtn.classList.add('visible');
+                // Remove hidden class if present
+                checkScoreBtn.classList.remove('hidden');
                 
                 // Force reflow to ensure CSS transition works
                 void checkScoreBtn.offsetHeight;
                 
-                console.log('After adding visible class:', {
+                console.log('After removing hidden class:', {
                     classList: checkScoreBtn.classList,
                     computedStyles: {
                         display: window.getComputedStyle(checkScoreBtn).display,
