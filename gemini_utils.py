@@ -154,8 +154,15 @@ def process_answer_key(answer_key_image):
             print(f"Error processing answer key: {e}")  # Print error in gemini_utils.py
     return None
 
-def recheck_single_column(column_array, model_name, answer_key_path):
-    """Recheck a single column with different parameters and prompt"""
+def recheck_single_column(column_array, model_name, answer_key_path, parse_json=True):
+    """Recheck a single column with different parameters and prompt
+    
+    Args:
+        column_array: Numpy array of the column image
+        model_name: Name of the Gemini model to use
+        answer_key_path: Path to the answer key JSON file
+        parse_json: Whether to parse the response as JSON (default: True)
+    """
     try:
         print(f"\n=== Starting Recheck API Call ===")
         print(f"Model: {model_name}")
