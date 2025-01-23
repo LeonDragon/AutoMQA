@@ -4,6 +4,7 @@ import io
 import google.generativeai as genai
 from google.ai.generativelanguage_v1beta.types import content  # Import for JSON schema
 import json  # Import the json library
+from prompts import get_prompt  # Import prompt helper
 
 # Read Gemini API key from file (you might need to adjust the path)
 try:
