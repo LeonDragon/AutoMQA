@@ -489,15 +489,14 @@ document.getElementById('gemini-form').addEventListener('submit', async (e) => {
                 }
             });
 
-            // Show the Check Score button
+            // Show the Check Score button with debug logging
             const checkScoreBtn = document.getElementById('check-score');
             if (checkScoreBtn) {
                 console.log('Making Check Score button visible');
-                checkScoreBtn.style.display = 'inline-block';
-                checkScoreBtn.style.visibility = 'visible';
-                checkScoreBtn.style.opacity = '1';
-                checkScoreBtn.style.transition = 'all 0.3s ease';
+                console.log('Button before:', checkScoreBtn);
                 checkScoreBtn.classList.add('visible');
+                console.log('Button after:', checkScoreBtn);
+                console.log('Computed styles:', window.getComputedStyle(checkScoreBtn));
             } else {
                 console.error('Check Score button not found');
             }

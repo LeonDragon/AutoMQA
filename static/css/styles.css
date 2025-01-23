@@ -336,7 +336,9 @@ body {
 }
 
 #check-score {
-    display: none; /* Start hidden */
+    display: inline-block; /* Changed from none */
+    visibility: hidden; /* Start hidden */
+    opacity: 0;
     margin-left: 10px;
     white-space: nowrap;
     background-color: #28a745;
@@ -348,7 +350,6 @@ body {
 }
 
 #check-score.visible {
-    display: inline-block;
     visibility: visible;
     opacity: 1;
 }
