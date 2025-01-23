@@ -481,41 +481,8 @@ document.getElementById('gemini-form').addEventListener('submit', async (e) => {
                 }
             });
 
-            // Show scores and processing time
-            const scoreMessages = Object.entries(result.answer_key_data)
-                .map(([examCode, score]) => 
-                    `Exam ${examCode} Score: ${score.toFixed(2)}%`
-                )
-                .join('\n') + `\nProcessing Time: ${result.processing_time.toFixed(2)} seconds`;
-
-            // Create and show results dialog
-            const dialog = document.createElement('dialog');
-            dialog.style.cssText = `
-                border: none;
-                border-radius: 8px;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                padding: 0;
-                max-width: 500px;
-                width: 90%;
-            `;
-            
-            dialog.innerHTML = `
-                <div style="padding: 20px;">
-                    <h3 style="margin: 0 0 20px 0; text-align: center;">Scoring Results</h3>
-                    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-                        ${scoreMessages.split('\n').map(msg => `<div>${msg}</div>`).join('')}
-                    </div>
-                    <div style="text-align: center;">
-                        <button onclick="this.closest('dialog').close()" 
-                            style="background: #007bff; color: white; border: none; padding: 8px 20px; border-radius: 4px; cursor: pointer;">
-                            Close
-                        </button>
-                    </div>
-                </div>
-            `;
-
-            document.body.appendChild(dialog);
-            dialog.showModal();
+            // Show the enhanced scoring dialog
+            updateColumnResults();
 
             // Show success message
             const successDiv = document.createElement('div');
@@ -751,40 +718,8 @@ document.getElementById('process-all-columns').addEventListener('click', async f
                 }
             });
 
-            // Show scores and processing time in a dialog
-            const scoreMessages = Object.entries(result.answer_key_data)
-                .map(([examCode, score]) => 
-                    `Exam ${examCode} Score: ${score.toFixed(2)}%`
-                )
-                .join('\n') + `\nProcessing Time: ${result.processing_time.toFixed(2)} seconds`;
-
-            const dialog = document.createElement('dialog');
-            dialog.style.cssText = `
-                border: none;
-                border-radius: 8px;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                padding: 0;
-                max-width: 500px;
-                width: 90%;
-            `;
-            
-            dialog.innerHTML = `
-                <div style="padding: 20px;">
-                    <h3 style="margin: 0 0 20px 0; text-align: center;">Scoring Results</h3>
-                    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-                        ${scoreMessages.split('\n').map(msg => `<div>${msg}</div>`).join('')}
-                    </div>
-                    <div style="text-align: center;">
-                        <button onclick="this.closest('dialog').close()" 
-                            style="background: #007bff; color: white; border: none; padding: 8px 20px; border-radius: 4px; cursor: pointer;">
-                            Close
-                        </button>
-                    </div>
-                </div>
-            `;
-
-            document.body.appendChild(dialog);
-            dialog.showModal();
+            // Show the enhanced scoring dialog
+            updateColumnResults();
 
             // Show success message
             const successDiv = document.createElement('div');
