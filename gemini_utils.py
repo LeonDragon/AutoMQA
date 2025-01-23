@@ -225,6 +225,84 @@ def recheck_single_column(column_array, model_name, answer_key_path):
     except Exception as e:
         return {'error': str(e)}
 
+def process_single_column_json(column_array, model_name, answer_key_path, temperature=0):
+    """Process a single column with Gemini using JSON extract prompt"""
+    try:
+        # Create a new Gemini model instance for each thread
+        genai.configure(api_key=gemini_api_key)
+        
+        # Create generation config with adjustable temperature
+        generation_config = {
+            "temperature": temperature,
+            "top_p": 1,
+            "top_k": 10,
+            "max_output_tokens": 8192,
+            "response_mime_type": "application/json",
+        }
+
+        # Create model instance
+        model = genai.GenerativeModel(
+            model_name=model_name,
+            generation_config=generation_config,
+        )
+        
+        # Initialize token counters
+        input_tokens = 0
+        output_tokens = 0
+
+        # Upload image
+        file = upload_to_gemini(column_array, mime_type="image/jpeg", compress_quality=100)
+
+        from prompts import get_prompt
+            
+        # Create prompt using json_extract
+        prompt = [
+            file,
+            get_prompt('json_extract', 'json')
+        ]
+
+        # Get response with usage tracking
+        response = model.generate_content(prompt)
+        
+        # Print raw response for debugging
+        print("\n=== RAW GEMINI RESPONSE ===")
+        print(response.text)
+        
+        json_response = json.loads(response.text)
+        
+        # Print parsed JSON response
+        #print("\n=== PARSED JSON RESPONSE ===")
+        #print(json.dumps(json_response, indent=2))
+        
+        # Get token usage from response
+        if hasattr(response, 'usage_metadata'):
+            input_tokens = response.usage_metadata.prompt_token_count
+            output_tokens = response.usage_metadata.candidates_token_count
+
+        # Load answer key
+        with open(answer_key_path, 'r') as f:
+            answer_key_data = json.load(f)["answerKeys"]
+
+        # Calculate scores
+        scores = {}
+        for test_code, test_answer_key in answer_key_data.items():
+            correct_answers = sum(1 for q_num, answer in json_response.items() 
+                               if str(q_num) in test_answer_key and answer == test_answer_key[str(q_num)])
+            score = (correct_answers / len(test_answer_key)) * 100
+            scores[test_code] = score
+
+        return {
+            'answers': json_response,
+            'scores': scores,
+            'response': json_response,
+            'tokens': {
+                'input': input_tokens,
+                'output': output_tokens
+            }
+        }
+    except Exception as e:
+        return {'error': str(e)}
+
 def process_single_column(column_array, model_name, answer_key_path, temperature=0):
     """Process a single column with Gemini"""
     try:
