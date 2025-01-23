@@ -895,14 +895,17 @@ function createColumnPair(column, index) {
     const pairDiv = document.createElement('div');
     pairDiv.className = 'column-pair';
     
+    // Add combined heading
+    const heading = document.createElement('h6');
+    heading.innerHTML = `
+        <span>Column ${index + 1}</span>
+        <span>Gemini Analysis</span>
+    `;
+    pairDiv.appendChild(heading);
+    
     // Create column preview section
     const previewDiv = document.createElement('div');
     previewDiv.className = 'column-preview';
-    
-    // Add column number
-    const heading = document.createElement('h6');
-    heading.textContent = `Column ${index + 1}`;
-    previewDiv.appendChild(heading);
     
     // Add image
     const img = document.createElement('img');

@@ -236,25 +236,41 @@ body {
     grid-template-columns: 1.5fr 1fr;
     gap: 15px;
     align-items: start;
+    margin-bottom: 20px;
+}
+
+.column-pair h6 {
+    grid-column: 1 / -1;
+    margin: 0 0 10px 0;
+    font-size: 1.1em;
+    color: #343a40;
+    display: flex;
+    gap: 20px;
 }
 
 .column-preview {
     background: white;
-    padding: 10px;
+    padding: 15px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    height: 60vh;
+    height: 70vh;
     overflow-y: auto;
 }
 
 .response-panel {
     background: white;
-    padding: 10px;
+    padding: 15px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    height: 60vh;
+    height: 70vh;
     overflow-y: auto;
-    font-size: 0.8em;
+    font-size: 0.9em;
+}
+
+.column-preview img {
+    max-height: calc(70vh - 100px);
+    object-fit: contain;
+    margin-bottom: 15px;
 }
 
 .response-item {
