@@ -481,8 +481,8 @@ document.getElementById('gemini-form').addEventListener('submit', async (e) => {
                 }
             });
 
-            // Show the enhanced scoring dialog
-            updateColumnResults();
+            // Show the Check Score button
+            document.getElementById('check-score').style.display = 'block';
 
             // Show success message
             const successDiv = document.createElement('div');
@@ -507,6 +507,11 @@ document.getElementById('gemini-form').addEventListener('submit', async (e) => {
         button.disabled = false;
         button.innerHTML = originalContent;
     }
+});
+
+// Add click handler for Check Score button
+document.getElementById('check-score').addEventListener('click', function() {
+    updateColumnResults();
 });
 
 // Add click handler for processing all columns
