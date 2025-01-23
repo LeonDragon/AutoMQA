@@ -17,11 +17,11 @@ except FileNotFoundError:
 def compress_image(image_np, quality=50):
     """Compress image using OpenCV with specified quality percentage"""
     # Step 1: Convert the original image_np to a JPEG version (uncompressed)
-    _, original_jpg = cv2.imencode('.jpg', image_np)
+    _, original_jpg = cv2.imencode('.jpeg', image_np)
 
     # Step 2: Compress the image with the specified quality
     encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), quality]
-    _, image_encoded = cv2.imencode('.jpg', image_np, encode_param)
+    _, image_encoded = cv2.imencode('.jpeg', image_np, encode_param)
 
     # Step 3: Calculate compression ratio
     original_size = len(original_jpg)  # Size of the uncompressed JPEG
@@ -234,8 +234,8 @@ def process_single_column(column_array, model_name, answer_key_path, temperature
         # Create generation config with adjustable temperature
         generation_config = {
             "temperature": temperature,  # Allow some randomness for rechecking
-            "top_p": 0.95,      # Slightly less strict sampling
-            "top_k": 40,        # Wider range of options
+            "top_p": 1,      # Slightly less strict sampling
+            "top_k": 10,        # Wider range of options
             "max_output_tokens": 8192,
             "response_mime_type": "application/json",
         }
@@ -251,7 +251,7 @@ def process_single_column(column_array, model_name, answer_key_path, temperature
         output_tokens = 0
 
         # Upload image
-        file = upload_to_gemini(column_array, mime_type="image/jpeg", compress_quality=99)
+        file = upload_to_gemini(column_array, mime_type="image/jpeg", compress_quality=100)
 
         from prompts import get_prompt
             
@@ -259,7 +259,7 @@ def process_single_column(column_array, model_name, answer_key_path, temperature
         prompt = [
             file,
             #get_prompt('default', 'column_analysis')
-            get_prompt('experiment_1', 'column_analysis')
+            get_prompt('experiment_2', 'column_analysis')
         ]
 
         # Get response with usage tracking
@@ -272,8 +272,8 @@ def process_single_column(column_array, model_name, answer_key_path, temperature
         json_response = json.loads(response.text)
         
         # Print parsed JSON response
-        print("\n=== PARSED JSON RESPONSE ===")
-        print(json.dumps(json_response, indent=2))
+        #print("\n=== PARSED JSON RESPONSE ===")
+        #print(json.dumps(json_response, indent=2))
         
         # Get token usage from response
         if hasattr(response, 'usage_metadata'):
