@@ -249,23 +249,23 @@ body {
 }
 
 .response-item {
-    margin: 5px 0;
-    padding: 8px;
+    margin: 2px 0;
+    padding: 4px;
     white-space: nowrap;
     font-family: monospace;
-    line-height: 1.3;
+    line-height: 1;
 }
 
 .response-question {
     display: flex;
     align-items: center;
-    gap: 5px;
-    margin: 3px 0;
-    padding: 4px 0;
+    gap: 3px;
+    margin: 1px 0;
+    padding: 0;
 }
 
 .response-answer {
-    font-size: 0.9em;
+    font-size: 0.85em;
     color: #333;
 }
 
