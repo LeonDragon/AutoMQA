@@ -457,31 +457,49 @@ document.getElementById('gemini-form').addEventListener('submit', async (e) => {
                 });
             };
 
-            // Use MutationObserver to wait for .column-results to be added to the DOM
-            const observer = new MutationObserver((mutationsList, observer) => {
-                for (const mutation of mutationsList) {
-                    if (mutation.addedNodes.length) {
-                        const columnResults = document.querySelectorAll('.column-results');
-                        if (columnResults.length === processingState.columnData.length) {
-                            updateColumnResults();
-                            observer.disconnect(); // Stop observing once we've updated the results
-                            break;
-                        }
-                    }
+            // Update each response panel with the results
+            result.all_responses.forEach((response, index) => {
+                const responsePanel = document.getElementById(`response-panel-${index}`);
+                if (responsePanel) {
+                    responsePanel.innerHTML = formatResponse(response);
                 }
             });
 
-            // Start observing the columns-container for added nodes
-            const columnsContainer = document.getElementById('columns-container');
-            observer.observe(columnsContainer, { childList: true, subtree: true });
+            // Show scores and processing time
+            const scoreMessages = Object.entries(result.answer_key_data)
+                .map(([examCode, score]) => 
+                    `Exam ${examCode} Score: ${score.toFixed(2)}%`
+                )
+                .join('\n') + `\nProcessing Time: ${result.processing_time.toFixed(2)} seconds`;
 
-            // Optional: Fallback in case MutationObserver doesn't work as expected
-            setTimeout(() => {
-                if (document.querySelectorAll('.column-results').length === processingState.columnData.length) {
-                updateColumnResults();
-                observer.disconnect();
-                }
-            }, 2000); // 2 second fallback
+            // Create and show results dialog
+            const dialog = document.createElement('dialog');
+            dialog.style.cssText = `
+                border: none;
+                border-radius: 8px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                padding: 0;
+                max-width: 500px;
+                width: 90%;
+            `;
+            
+            dialog.innerHTML = `
+                <div style="padding: 20px;">
+                    <h3 style="margin: 0 0 20px 0; text-align: center;">Scoring Results</h3>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                        ${scoreMessages.split('\n').map(msg => `<div>${msg}</div>`).join('')}
+                    </div>
+                    <div style="text-align: center;">
+                        <button onclick="this.closest('dialog').close()" 
+                            style="background: #007bff; color: white; border: none; padding: 8px 20px; border-radius: 4px; cursor: pointer;">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(dialog);
+            dialog.showModal();
 
             // Show success message
             const successDiv = document.createElement('div');
@@ -917,15 +935,24 @@ function formatResponse(response) {
     if (!response) {
         return '<div class="alert alert-warning">No response available</div>';
     }
-    
+
+    // Convert response to array if it's an object
+    const responses = Array.isArray(response) ? response : Object.entries(response);
+
     return `
         <div class="response-item">
             <small class="d-block text-muted mb-2">Gemini Analysis:</small>
-            ${Object.entries(response)
-                .sort(([a], [b]) => parseInt(a) - parseInt(b))
-                .map(([qNum, answer]) => 
-                    `<div class="badge bg-primary me-1 mb-1">Q${qNum}: ${answer}</div>`
-                ).join('')}
+            ${responses
+                .map(([qNum, answer], index) => {
+                    // Handle both array and object responses
+                    const questionNumber = typeof qNum === 'number' ? index + 1 : qNum;
+                    return `
+                        <div class="response-question mb-2">
+                            <span class="badge bg-primary me-1">Q${questionNumber}</span>
+                            <span class="response-answer">${answer}</span>
+                        </div>`;
+                })
+                .join('')}
         </div>
     `;
 }
