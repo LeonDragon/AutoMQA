@@ -215,12 +215,55 @@ body {
     padding: 5px 8px;
 }
 
-.column-row {
+.columns-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    overflow: hidden;
     margin-bottom: 30px;
+}
+
+.column-row {
+    display: contents;
+}
+
+.column-preview {
     background: white;
-    padding: 20px;
+    padding: 15px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    height: 90vh;
+    overflow-y: auto;
+}
+
+.response-panel {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    height: 90vh;
+    overflow-y: auto;
+    font-size: 0.85em;
+}
+
+.response-item {
+    margin: 5px 0;
+    padding: 8px;
+    white-space: nowrap;
+    font-family: monospace;
+}
+
+.response-question {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin: 3px 0;
+}
+
+.badge {
+    font-family: monospace;
+    min-width: 2.5em;
+    text-align: center;
 }
 
 .column-controls {

@@ -871,7 +871,7 @@ function displayColumns(columns) {
         
         // Create main row container
         const rowDiv = document.createElement('div');
-        rowDiv.className = 'row column-row mb-4';
+        rowDiv.className = 'column-row';
         
         // Column Image Section (Left)
         const imageCol = document.createElement('div');
