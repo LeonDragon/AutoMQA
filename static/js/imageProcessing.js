@@ -383,36 +383,48 @@ document.getElementById('gemini-form').addEventListener('submit', async (e) => {
                 // Create and show popup dialog with all results
                 const dialog = document.createElement('dialog');
                 dialog.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
                     border: none;
-                    border-radius: 8px;
-                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    border-radius: 12px;
+                    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
                     padding: 0;
-                    max-width: 500px;
-                    width: 90%;
+                    width: 600px;
+                    max-width: 90%;
+                    z-index: 1000;
+                    background: white;
                 `;
                 
                 dialog.innerHTML = `
                     <div style="
-                        padding: 20px;
+                        padding: 30px;
                         background: white;
-                        border-radius: 8px;
+                        border-radius: 12px;
                     ">
                         <h3 style="
-                            margin: 0 0 20px 0;
+                            margin: 0 0 25px 0;
                             color: #2c3e50;
-                            font-size: 24px;
+                            font-size: 28px;
                             text-align: center;
                             border-bottom: 2px solid #eee;
-                            padding-bottom: 10px;
-                        ">Scoring Results</h3>
+                            padding-bottom: 15px;
+                            font-weight: 600;
+                        ">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            Scoring Results
+                        </h3>
                         <div style="
                             background: #f8f9fa;
-                            padding: 15px;
-                            border-radius: 6px;
-                            margin-bottom: 20px;
+                            padding: 20px;
+                            border-radius: 8px;
+                            margin-bottom: 25px;
                             font-family: monospace;
-                            font-size: 14px;
+                            font-size: 16px;
                             line-height: 1.6;
+                            max-height: 400px;
+                            overflow-y: auto;
                         ">
                             ${scoreMessages.split('\n').map(msg => {
                                 if (msg.includes('Processing Time') || msg.includes('Token Usage')) {
@@ -426,12 +438,16 @@ document.getElementById('gemini-form').addEventListener('submit', async (e) => {
                                 background: #007bff;
                                 color: white;
                                 border: none;
-                                padding: 8px 20px;
-                                border-radius: 4px;
+                                padding: 10px 30px;
+                                border-radius: 6px;
                                 cursor: pointer;
-                                font-size: 14px;
-                                transition: background 0.3s;
-                            ">Close</button>
+                                font-size: 16px;
+                                font-weight: 500;
+                                transition: all 0.3s;
+                            ">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Close Results
+                            </button>
                         </div>
                     </div>
                 `;
