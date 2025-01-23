@@ -482,7 +482,10 @@ document.getElementById('gemini-form').addEventListener('submit', async (e) => {
             });
 
             // Show the Check Score button
-            document.getElementById('check-score').style.display = 'block';
+            const checkScoreBtn = document.getElementById('check-score');
+            checkScoreBtn.style.display = 'inline-block';
+            checkScoreBtn.style.visibility = 'visible';
+            checkScoreBtn.style.opacity = '1';
 
             // Show success message
             const successDiv = document.createElement('div');

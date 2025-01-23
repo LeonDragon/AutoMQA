@@ -336,7 +336,9 @@ body {
 }
 
 #check-score {
-    display: none;
+    display: inline-block;
+    visibility: hidden;
+    opacity: 0;
     margin-left: 10px;
     white-space: nowrap;
     background-color: #28a745;
