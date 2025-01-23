@@ -958,7 +958,6 @@ function formatResponse(response) {
 
     return `
         <div class="response-item">
-            <small class="d-block text-muted mb-2">Gemini Analysis:</small>
             ${responses
                 .map(([qNum, answer], index) => {
                     // Handle both array and object responses
