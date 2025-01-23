@@ -242,7 +242,16 @@ def process_single_column(column_array, model_name, answer_key_path, temperature
 
         # Get response with usage tracking
         response = model.generate_content(prompt)
+        
+        # Print raw response for debugging
+        print("\n=== RAW GEMINI RESPONSE ===")
+        print(response.text)
+        
         json_response = json.loads(response.text)
+        
+        # Print parsed JSON response
+        print("\n=== PARSED JSON RESPONSE ===")
+        print(json.dumps(json_response, indent=2))
         
         # Get token usage from response
         if hasattr(response, 'usage_metadata'):
