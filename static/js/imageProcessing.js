@@ -963,7 +963,53 @@ function createColumnPair(column, index) {
     const pairDiv = document.createElement('div');
     pairDiv.className = 'column-pair';
     
-    console.log('Display columns setup completed');
+    // Create column preview section
+    const previewDiv = document.createElement('div');
+    previewDiv.className = 'column-preview';
+    
+    // Add column number
+    const heading = document.createElement('h6');
+    heading.textContent = `Column ${index + 1}`;
+    previewDiv.appendChild(heading);
+    
+    // Add image
+    const img = document.createElement('img');
+    img.src = `data:image/jpeg;base64,${column}`;
+    img.alt = `Column ${index + 1}`;
+    img.style.maxHeight = '100%';
+    img.style.width = 'auto';
+    previewDiv.appendChild(img);
+    
+    // Add controls
+    const controlsDiv = document.createElement('div');
+    controlsDiv.className = 'column-controls';
+    
+    const reprocessBtn = document.createElement('button');
+    reprocessBtn.className = 'reprocess-btn';
+    reprocessBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Reprocess';
+    reprocessBtn.onclick = () => reprocessColumn(index, column);
+    controlsDiv.appendChild(reprocessBtn);
+    
+    previewDiv.appendChild(controlsDiv);
+    pairDiv.appendChild(previewDiv);
+    
+    // Create response panel
+    const responseDiv = document.createElement('div');
+    responseDiv.className = 'response-panel';
+    responseDiv.id = `response-panel-${index}`;
+    
+    // Add initial loading state
+    responseDiv.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="text-muted mt-2">Waiting for Gemini response...</p>
+        </div>
+    `;
+    
+    pairDiv.appendChild(responseDiv);
+    
     return pairDiv;
 }
 
