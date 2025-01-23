@@ -552,6 +552,149 @@ document.getElementById('gemini-form').addEventListener('submit', async (e) => {
     }
 });
 
+// Function to calculate and display scores
+function updateColumnResults() {
+    console.log('=== Calculating Scores ===');
+    
+    // Get the latest results from the response panels
+    const columnDivs = document.querySelectorAll('.column-results');
+    const allResponses = [];
+    
+    columnDivs.forEach(columnDiv => {
+        const answers = {};
+        const answerElements = columnDiv.querySelectorAll('.response-question');
+        answerElements.forEach(el => {
+            const qNum = el.querySelector('.badge').textContent;
+            const answer = el.querySelector('.response-answer').textContent;
+            answers[qNum] = answer;
+        });
+        allResponses.push(answers);
+    });
+    
+    // Combine all responses into a single object
+    const combinedResponses = {};
+    allResponses.forEach(response => {
+        Object.assign(combinedResponses, response);
+    });
+    
+    console.log('Combined Responses:', combinedResponses);
+    
+    // Get answer key data from processingState
+    if (!processingState.answerKeyData) {
+        console.error('No answer key data available');
+        alert('No answer key data available. Please process an answer key first.');
+        return;
+    }
+    
+    // Calculate scores for each exam code
+    const scoreResults = {};
+    Object.entries(processingState.answerKeyData).forEach(([examCode, groundTruth]) => {
+        let correct = 0;
+        let total = Object.keys(groundTruth).length;
+        
+        Object.keys(groundTruth).forEach(qNum => {
+            if (combinedResponses[qNum] && groundTruth[qNum] === combinedResponses[qNum]) {
+                correct++;
+            }
+        });
+        
+        const score = ((correct / total) * 100).toFixed(2);
+        scoreResults[examCode] = {
+            score: score,
+            correct: correct,
+            total: total
+        };
+    });
+    
+    // Create score messages
+    const scoreMessages = Object.entries(scoreResults)
+        .map(([examCode, result]) => 
+            `Exam ${examCode} Score: ${result.score}% (${result.correct}/${result.total} questions)`
+        )
+        .join('\n');
+    
+    console.log('Score Results:', scoreMessages);
+    
+    // Create and show popup dialog with all results
+    const dialog = document.createElement('dialog');
+    dialog.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        padding: 0;
+        width: 600px;
+        max-width: 90%;
+        z-index: 1000;
+        background: white;
+    `;
+    
+    dialog.innerHTML = `
+        <div style="
+            padding: 30px;
+            background: white;
+            border-radius: 12px;
+        ">
+            <h3 style="
+                margin: 0 0 25px 0;
+                color: #2c3e50;
+                font-size: 28px;
+                text-align: center;
+                border-bottom: 2px solid #eee;
+                padding-bottom: 15px;
+                font-weight: 600;
+            ">
+                <i class="fas fa-chart-bar me-2"></i>
+                Scoring Results
+            </h3>
+            <div style="
+                background: #f8f9fa;
+                padding: 20px;
+                border-radius: 8px;
+                margin-bottom: 25px;
+                font-family: monospace;
+                font-size: 16px;
+                line-height: 1.6;
+                max-height: 400px;
+                overflow-y: auto;
+            ">
+                ${scoreMessages.split('\n').map(msg => `<div>${msg}</div>`).join('')}
+            </div>
+            <div style="text-align: center;">
+                <button onclick="this.closest('dialog').close()" style="
+                    background: #007bff;
+                    color: white;
+                    border: none;
+                    padding: 10px 30px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 16px;
+                    font-weight: 500;
+                    transition: all 0.3s;
+                ">
+                    <i class="fas fa-check-circle me-2"></i>
+                    Close Results
+                </button>
+            </div>
+        </div>
+    `;
+
+    // Add hover effect to the close button
+    const closeButton = dialog.querySelector('button');
+    closeButton.addEventListener('mouseover', () => {
+        closeButton.style.background = '#0056b3';
+    });
+    closeButton.addEventListener('mouseout', () => {
+        closeButton.style.background = '#007bff';
+    });
+
+    document.body.appendChild(dialog);
+    dialog.showModal();
+}
+
 // Add click handler for Check Score button
 document.getElementById('check-score').addEventListener('click', function() {
     updateColumnResults();
