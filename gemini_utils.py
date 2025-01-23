@@ -283,6 +283,7 @@ def _process_with_prompt(column_array, model_name, answer_key_path, temperature,
         response_mime_type: MIME type for response format ("application/json" or "text/plain")
     """
     try:
+        print(prompt_text)
         # Create a new Gemini model instance
         genai.configure(api_key=gemini_api_key)
         
