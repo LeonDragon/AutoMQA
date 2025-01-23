@@ -220,7 +220,8 @@ body {
     flex-direction: column;
     gap: 20px;
     margin-bottom: 30px;
-    height: 70vh; /* Increase height */
+    height: 80vh; /* Increased height */
+    overflow-y: auto; /* Add scroll if content exceeds height */
 }
 
 .column-row {
