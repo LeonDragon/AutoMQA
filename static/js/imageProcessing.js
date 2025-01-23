@@ -962,9 +962,9 @@ function displayColumns(columns) {
 function createColumnPair(column, index) {
     const pairDiv = document.createElement('div');
     pairDiv.className = 'column-pair';
-    });
     
     console.log('Display columns setup completed');
+    return pairDiv;
 }
 
 function formatResponse(response) {
