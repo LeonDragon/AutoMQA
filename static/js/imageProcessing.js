@@ -30,9 +30,11 @@ function clearStage2State() {
 const processingState = {
     columnData: null,
     headerData: null,
+    answerKeyData: null,
     reset() {
         this.columnData = null;
         this.headerData = null;
+        this.answerKeyData = null;
         console.log('Processing state reset');
     }
 };
@@ -119,6 +121,11 @@ document.getElementById('answer-key-form').addEventListener('submit', async (e) 
         if (data.success) {
             const resultsDiv = document.getElementById('answer-key-results');
             resultsDiv.innerHTML = '<div class="alert alert-success">Answer key processed successfully!</div>';
+            
+            // Store the answer key data in processingState
+            processingState.answerKeyData = data.answer_keys;
+            console.log('Answer key data stored:', processingState.answerKeyData);
+            
             showStage(2);
         } else {
             throw new Error(data.error);
@@ -582,6 +589,7 @@ function updateColumnResults() {
     // Get answer key data from processingState
     if (!processingState.answerKeyData) {
         console.error('No answer key data available');
+        console.log('Current processingState:', processingState);
         alert('No answer key data available. Please process an answer key first.');
         return;
     }
