@@ -336,8 +336,8 @@ body {
 }
 
 #check-score {
-    display: inline-block; /* Changed from none */
-    visibility: hidden; /* Start hidden */
+    display: inline-block !important; /* Force display */
+    visibility: hidden;
     opacity: 0;
     margin-left: 10px;
     white-space: nowrap;
@@ -346,12 +346,14 @@ body {
     padding: 8px 16px;
     font-size: 14px;
     border-radius: 4px;
-    transition: all 0.3s ease;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    will-change: opacity, visibility;
 }
 
 #check-score.visible {
-    visibility: visible;
-    opacity: 1;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: all;
 }
 
 #check-score:hover {

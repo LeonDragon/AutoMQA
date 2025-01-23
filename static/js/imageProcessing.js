@@ -489,16 +489,42 @@ document.getElementById('gemini-form').addEventListener('submit', async (e) => {
                 }
             });
 
-            // Show the Check Score button with debug logging
+            // Show the Check Score button with enhanced debug logging
             const checkScoreBtn = document.getElementById('check-score');
             if (checkScoreBtn) {
-                console.log('Making Check Score button visible');
-                console.log('Button before:', checkScoreBtn);
+                console.log('=== Making Check Score button visible ===');
+                console.log('Button element:', checkScoreBtn);
+                console.log('Initial class list:', checkScoreBtn.classList);
+                console.log('Initial computed styles:', {
+                    display: window.getComputedStyle(checkScoreBtn).display,
+                    visibility: window.getComputedStyle(checkScoreBtn).visibility,
+                    opacity: window.getComputedStyle(checkScoreBtn).opacity
+                });
+                
+                // Add visible class
                 checkScoreBtn.classList.add('visible');
-                console.log('Button after:', checkScoreBtn);
-                console.log('Computed styles:', window.getComputedStyle(checkScoreBtn));
+                
+                // Force reflow to ensure CSS transition works
+                void checkScoreBtn.offsetHeight;
+                
+                console.log('After adding visible class:', {
+                    classList: checkScoreBtn.classList,
+                    computedStyles: {
+                        display: window.getComputedStyle(checkScoreBtn).display,
+                        visibility: window.getComputedStyle(checkScoreBtn).visibility,
+                        opacity: window.getComputedStyle(checkScoreBtn).opacity
+                    }
+                });
+                
+                // Add event listener for transition end
+                checkScoreBtn.addEventListener('transitionend', () => {
+                    console.log('Check Score button transition complete:', {
+                        visibility: window.getComputedStyle(checkScoreBtn).visibility,
+                        opacity: window.getComputedStyle(checkScoreBtn).opacity
+                    });
+                });
             } else {
-                console.error('Check Score button not found');
+                console.error('Check Score button not found in DOM');
             }
 
             // Show success message
