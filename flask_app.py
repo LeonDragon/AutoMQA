@@ -345,7 +345,7 @@ def handle_single_column():
         data = request.json
         print("Request data received:", data is not None)
         
-        model_name = data.get('model_name', 'gemini-1.5-flash')
+        model_name = data.get('model_name', 'gemini-exp-1206')
         column_base64 = data.get('column')
         column_index = data.get('index')
         is_recheck = data.get('recheck', False)
