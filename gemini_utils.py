@@ -259,7 +259,7 @@ def process_single_column(column_array, model_name, answer_key_path, temperature
         prompt = [
             file,
             #get_prompt('default', 'column_analysis')
-            get_prompt('experiment_2', 'column_analysis')
+            get_prompt('experiment_1', 'column_analysis')
         ]
 
         # Get response with usage tracking
