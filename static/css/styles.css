@@ -422,12 +422,17 @@ body {
 }
 
 #header-image {
-    max-width: 100%;
+    max-width: 300px;
     height: auto;
     border: 1px solid #dee2e6;
     border-radius: 4px;
-    margin-bottom: 15px;
+    margin: 0 auto 20px;
     display: block;
+}
+
+#header-image-container {
+    text-align: center;
+    margin-bottom: 30px;
 }
 
 #settings-section {

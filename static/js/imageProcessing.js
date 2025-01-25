@@ -236,11 +236,20 @@ function handleContinueToStage3(e) {
             displayColumns(processingState.columnData);
 
             // Handle header image
-            const headerImage = document.getElementById('header-image');
-            if (headerImage && processingState.headerData) {
+            const headerImageContainer = document.createElement('div');
+            headerImageContainer.id = 'header-image-container';
+            
+            const headerImage = document.createElement('img');
+            headerImage.id = 'header-image';
+            headerImage.alt = 'Processed Header';
+            
+            if (processingState.headerData) {
                 console.log('Setting header image source');
                 headerImage.src = `data:image/jpeg;base64,${processingState.headerData}`;
             }
+            
+            headerImageContainer.appendChild(headerImage);
+            container.insertBefore(headerImageContainer, container.firstChild);
         }
     }, 100); // Small delay to ensure DOM is ready
 }
