@@ -167,7 +167,12 @@ def process_image(image_data, min_width=20, min_height=4, min_aspect_ratio=0.7, 
 
                     # Enhance bubbles in the warped image
                     from helper.preprocessing import enhance_bubbles
-                    warped = enhance_bubbles(warped)
+                    # Convert grayscale to BGR for processing
+                    if len(warped.shape) == 2:  # If grayscale
+                        warped_bgr = cv2.cvtColor(warped, cv2.COLOR_GRAY2BGR)
+                    else:
+                        warped_bgr = warped
+                    warped = enhance_bubbles(warped_bgr)
 
                     # Split into columns
                     warped_height, warped_width = warped.shape[:2]

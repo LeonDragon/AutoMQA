@@ -104,14 +104,17 @@ def enhance_bubbles(image_np, threshold=120):
     Enhance filled bubbles by drawing black circles on them using thresholding and morphological operations.
     
     Args:
-        image_np (numpy.ndarray): Input image in BGR format
+        image_np (numpy.ndarray): Input image (can be grayscale or BGR)
         threshold (int): Threshold value for binary inverse thresholding
         
     Returns:
         numpy.ndarray: Processed image with enhanced bubbles
     """
-    # Convert to grayscale
-    gray = cv2.cvtColor(image_np, cv2.COLOR_BGR2GRAY)
+    # Convert to grayscale if needed
+    if len(image_np.shape) == 3:  # If image has 3 channels (BGR)
+        gray = cv2.cvtColor(image_np, cv2.COLOR_BGR2GRAY)
+    else:  # If already grayscale
+        gray = image_np
     
     # Apply binary inverse thresholding
     _, thresh = cv2.threshold(gray, threshold, 255, cv2.THRESH_BINARY_INV)
