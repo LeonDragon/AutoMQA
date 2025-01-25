@@ -145,7 +145,19 @@ def enhance_bubbles(image_np, threshold=120):
         
         # Filter by size (optional)
         if 5 < radius < 50:  # Adjust these values as needed
-            # Draw black circle
-            cv2.circle(output, (cx, cy), radius, (0, 0, 0), -1)
+            # Create a mask for the filled area
+            mask = np.zeros_like(gray)
+            cv2.drawContours(mask, [contour], -1, 255, -1)
+            
+            # Calculate mean intensity of the filled area
+            mean_intensity = cv2.mean(gray, mask=mask)[0]
+            
+            # Only draw circle if the area is significantly darker than background
+            if mean_intensity < threshold:
+                # Draw black circle with transparency
+                overlay = output.copy()
+                cv2.circle(overlay, (cx, cy), radius, (0, 0, 0), -1)
+                alpha = 0.5  # Transparency factor
+                cv2.addWeighted(overlay, alpha, output, 1 - alpha, 0, output)
     
     return output
