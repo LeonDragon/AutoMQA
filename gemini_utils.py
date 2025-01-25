@@ -225,7 +225,7 @@ def recheck_single_column(column_array, model_name, answer_key_path):
     except Exception as e:
         return {'error': str(e)}
 
-def call_gemini_api(prompt_content, model_name="gemini-1.5-pro-latest", 
+def call_gemini_api(prompt_content, model_name="gemini-1.5-flash-latest", 
                    temperature=0, mime_type="application/json", 
                    image_np=None, compress_quality=100):
     """Make API call to Gemini with optional image upload"""
@@ -276,13 +276,13 @@ def call_gemini_api(prompt_content, model_name="gemini-1.5-pro-latest",
         return {'error': str(e)}
 
 def process_single_column(column_array, model_name, answer_key_path, 
-                         temperature=0, prompt_type='column_analysis', 
-                         experiment='experiment_1', compress_quality=100):
+                         temperature=0, 
+                         compress_quality=100):
     """Process a single column with Gemini"""
     try:
         # Get prompt content
         from prompts import get_prompt
-        prompt_content = get_prompt(experiment, prompt_type)
+        prompt_content = get_prompt('experiment_1', 'column_analysis')
 
         # Make API call
         api_result = call_gemini_api(
@@ -295,6 +295,8 @@ def process_single_column(column_array, model_name, answer_key_path,
         
         if 'error' in api_result:
             return {'error': api_result['error']}
+        
+        # Make aother Gemii API call here for prompt(json_extract, json) that chain the results from above API api_result
 
         # Parse response
         json_response = json.loads(api_result['response'].text)
