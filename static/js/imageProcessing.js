@@ -235,12 +235,14 @@ function handleContinueToStage3(e) {
             // Display columns using the dedicated function
             displayColumns(processingState.columnData);
 
-            // Handle header image
-            if (processingState.headerData) {
+            // Handle header image only if it doesn't already exist
+            const existingHeader = document.getElementById('header-image-container');
+            if (processingState.headerData && !existingHeader) {
                 console.log('Setting header image source');
                 
                 // Create header container
                 const headerContainer = document.createElement('div');
+                headerContainer.id = 'header-image-container';
                 headerContainer.className = 'header-container';
                 
                 // Create image element
@@ -252,7 +254,7 @@ function handleContinueToStage3(e) {
                 // Add image to container
                 headerContainer.appendChild(headerImage);
                 
-                // Insert header before columns container
+                // Insert header at the top of the columns section
                 const columnsSection = document.getElementById('columns-section');
                 if (columnsSection) {
                     columnsSection.insertBefore(headerContainer, columnsSection.firstChild);
