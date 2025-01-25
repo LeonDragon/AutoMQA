@@ -429,15 +429,29 @@ body {
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     width: fit-content;
+    max-width: 100%;
 }
 
 #header-image {
     max-width: 300px;
+    width: 100%;
     height: auto;
     border: 1px solid #dee2e6;
     border-radius: 4px;
     display: block;
     margin: 0 auto;
+    object-fit: contain;
+}
+
+@media (max-width: 768px) {
+    #header-image {
+        max-width: 200px;
+    }
+    
+    .header-container {
+        padding: 15px;
+        margin-bottom: 20px;
+    }
 }
 
 #settings-section {

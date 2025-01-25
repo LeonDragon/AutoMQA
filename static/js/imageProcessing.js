@@ -236,24 +236,29 @@ function handleContinueToStage3(e) {
             displayColumns(processingState.columnData);
 
             // Handle header image
-            const headerContainer = document.createElement('div');
-            headerContainer.className = 'header-container';
-            headerContainer.style.textAlign = 'center';
-            headerContainer.style.marginBottom = '30px';
-            
             if (processingState.headerData) {
                 console.log('Setting header image source');
+                
+                // Create header container
+                const headerContainer = document.createElement('div');
+                headerContainer.className = 'header-container';
+                
+                // Create image element
                 const headerImage = document.createElement('img');
                 headerImage.id = 'header-image';
                 headerImage.src = `data:image/jpeg;base64,${processingState.headerData}`;
                 headerImage.alt = 'Processed Header';
-                headerImage.style.maxWidth = '300px';
-                headerImage.style.height = 'auto';
-                headerImage.style.border = '1px solid #ddd';
-                headerImage.style.borderRadius = '4px';
                 
+                // Add image to container
                 headerContainer.appendChild(headerImage);
-                container.insertBefore(headerContainer, container.firstChild);
+                
+                // Insert header before columns container
+                const columnsSection = document.getElementById('columns-section');
+                if (columnsSection) {
+                    columnsSection.insertBefore(headerContainer, columnsSection.firstChild);
+                } else {
+                    console.error('Columns section not found');
+                }
             }
         }
     }, 100); // Small delay to ensure DOM is ready
