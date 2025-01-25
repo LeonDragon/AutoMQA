@@ -1,6 +1,7 @@
 # preprocessing.py
 import cv2
 import numpy as np
+import math
 from imutils.perspective import four_point_transform
 
 def preprocess_image(image):
@@ -97,3 +98,51 @@ def preprocess_image(image):
             header = img_np[0:y_min, 0:img_np.shape[1]]
 
     return img_np, warped_image, columns, header
+
+def enhance_bubbles(image_np, threshold=120):
+    """
+    Enhance filled bubbles by drawing black circles on them using thresholding and morphological operations.
+    
+    Args:
+        image_np (numpy.ndarray): Input image in BGR format
+        threshold (int): Threshold value for binary inverse thresholding
+        
+    Returns:
+        numpy.ndarray: Processed image with enhanced bubbles
+    """
+    # Convert to grayscale
+    gray = cv2.cvtColor(image_np, cv2.COLOR_BGR2GRAY)
+    
+    # Apply binary inverse thresholding
+    _, thresh = cv2.threshold(gray, threshold, 255, cv2.THRESH_BINARY_INV)
+    
+    # Morphological closing
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+    
+    # Find contours
+    contours, _ = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    # Create a copy of the original image to draw on
+    output = image_np.copy()
+    
+    # Process each contour
+    for contour in contours:
+        # Calculate moments and centroid
+        M = cv2.moments(contour)
+        if M["m00"] == 0:
+            continue
+            
+        cx = int(M["m10"] / M["m00"])
+        cy = int(M["m01"] / M["m00"])
+        
+        # Calculate radius
+        area = cv2.contourArea(contour)
+        radius = int(math.sqrt(area / math.pi))
+        
+        # Filter by size (optional)
+        if 5 < radius < 50:  # Adjust these values as needed
+            # Draw black circle
+            cv2.circle(output, (cx, cy), radius, (0, 0, 0), -1)
+    
+    return output

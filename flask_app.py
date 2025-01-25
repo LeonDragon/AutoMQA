@@ -165,6 +165,10 @@ def process_image(image_data, min_width=20, min_height=4, min_aspect_ratio=0.7, 
                     warped = four_point_transform(enhanced_gray.copy(), answer_area_contour.reshape(4, 2))
                     cv2.rectangle(img_np, (x_min, y_min), (x_max, y_max), (0, 255, 0), 2)
 
+                    # Enhance bubbles in the warped image
+                    from helper.preprocessing import enhance_bubbles
+                    warped = enhance_bubbles(warped)
+
                     # Split into columns
                     warped_height, warped_width = warped.shape[:2]
                     column_width = warped_width // 4
