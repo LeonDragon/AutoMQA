@@ -254,12 +254,12 @@ function handleContinueToStage3(e) {
                 // Add image to container
                 headerContainer.appendChild(headerImage);
                 
-                // Insert header at the top of the columns section
-                const columnsSection = document.getElementById('columns-section');
-                if (columnsSection) {
-                    columnsSection.insertBefore(headerContainer, columnsSection.firstChild);
+                // Insert header at the top of the columns container
+                const columnsContainer = document.getElementById('columns-container');
+                if (columnsContainer) {
+                    columnsContainer.insertBefore(headerContainer, columnsContainer.firstChild);
                 } else {
-                    console.error('Columns section not found');
+                    console.error('Columns container not found');
                 }
             }
         }
