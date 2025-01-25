@@ -225,19 +225,21 @@ def recheck_single_column(column_array, model_name, answer_key_path):
     except Exception as e:
         return {'error': str(e)}
 
-def process_single_column(column_array, model_name, answer_key_path, temperature=0):
-    """Process a single column with Gemini"""
+def call_gemini_api(prompt_content, model_name="gemini-1.5-pro-latest", 
+                   temperature=0, mime_type="application/json", 
+                   image_np=None, compress_quality=100):
+    """Make API call to Gemini with optional image upload"""
     try:
-        # Create a new Gemini model instance for each thread
+        # Configure API
         genai.configure(api_key=gemini_api_key)
         
-        # Create generation config with adjustable temperature
+        # Create generation config
         generation_config = {
-            "temperature": temperature,  # Allow some randomness for rechecking
-            "top_p": 1,      # Slightly less strict sampling
-            "top_k": 10,        # Wider range of options
+            "temperature": temperature,
+            "top_p": 1,
+            "top_k": 10,
             "max_output_tokens": 8192,
-            "response_mime_type": "application/json",
+            "response_mime_type": mime_type,
         }
 
         # Create model instance
@@ -245,44 +247,58 @@ def process_single_column(column_array, model_name, answer_key_path, temperature
             model_name=model_name,
             generation_config=generation_config,
         )
-        
-        # Initialize token counters
-        input_tokens = 0
-        output_tokens = 0
 
-        # Upload image
-        file = upload_to_gemini(column_array, mime_type="image/jpeg", compress_quality=100)
-
-        from prompts import get_prompt
-            
-        # Create prompt
-        prompt = [
-            file,
-            #get_prompt('default', 'column_analysis')
-            get_prompt('experiment_1', 'column_analysis')
-        ]
+        # Build prompt content
+        prompt = []
+        if image_np is not None:
+            file = upload_to_gemini(image_np, mime_type="image/jpeg", compress_quality=compress_quality)
+            prompt.append(file)
+        prompt.append(prompt_content)
 
         # Get response with usage tracking
         response = model.generate_content(prompt)
         
-        # Print raw response for debugging
-        print("\n=== PROMPT 1 - RAW GEMINI RESPONSE===")
-        print(response.text)
-        
-        json_response = json.loads(response.text) #Move down
-        
-        # Print parsed JSON response
-        #print("\n=== PARSED JSON RESPONSE ===")
-        #print(json.dumps(json_response, indent=2))
-        
-        # Get token usage from response
+        # Get token usage
+        input_tokens = 0
+        output_tokens = 0
         if hasattr(response, 'usage_metadata'):
             input_tokens = response.usage_metadata.prompt_token_count
             output_tokens = response.usage_metadata.candidates_token_count
 
-        # =========== Second Prompt
+        return {
+            'response': response,
+            'tokens': {
+                'input': input_tokens,
+                'output': output_tokens
+            }
+        }
+    except Exception as e:
+        return {'error': str(e)}
 
+def process_single_column(column_array, model_name, answer_key_path, 
+                         temperature=0, prompt_type='column_analysis', 
+                         experiment='experiment_1', compress_quality=100):
+    """Process a single column with Gemini"""
+    try:
+        # Get prompt content
+        from prompts import get_prompt
+        prompt_content = get_prompt(experiment, prompt_type)
 
+        # Make API call
+        api_result = call_gemini_api(
+            prompt_content=prompt_content,
+            model_name=model_name,
+            temperature=temperature,
+            image_np=column_array,
+            compress_quality=compress_quality
+        )
+        
+        if 'error' in api_result:
+            return {'error': api_result['error']}
+
+        # Parse response
+        json_response = json.loads(api_result['response'].text)
+        
         # Load answer key
         with open(answer_key_path, 'r') as f:
             answer_key_data = json.load(f)["answerKeys"]
@@ -299,10 +315,7 @@ def process_single_column(column_array, model_name, answer_key_path, temperature
             'answers': json_response,
             'scores': scores,
             'response': json_response,
-            'tokens': {
-                'input': input_tokens,
-                'output': output_tokens
-            }
+            'tokens': api_result['tokens']
         }
     except Exception as e:
         return {'error': str(e)}

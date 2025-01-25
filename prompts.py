@@ -174,6 +174,9 @@ PROMPTS = {
     }
 }
 
-def get_prompt(experiment='default', prompt_type='column_analysis'):
-    """Get a prompt from the PROMPTS dictionary"""
-    return PROMPTS.get(experiment, {}).get(prompt_type, '')
+def get_prompt(experiment='default', prompt_type='column_analysis', **kwargs):
+    """Get a prompt from the PROMPTS dictionary with optional formatting"""
+    prompt = PROMPTS.get(experiment, {}).get(prompt_type, '')
+    if kwargs:
+        return prompt.format(**kwargs)
+    return prompt
