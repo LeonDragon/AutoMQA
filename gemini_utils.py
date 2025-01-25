@@ -266,10 +266,10 @@ def process_single_column(column_array, model_name, answer_key_path, temperature
         response = model.generate_content(prompt)
         
         # Print raw response for debugging
-        print("\n=== RAW GEMINI RESPONSE ===")
+        print("\n=== PROMPT 1 - RAW GEMINI RESPONSE===")
         print(response.text)
         
-        json_response = json.loads(response.text)
+        json_response = json.loads(response.text) #Move down
         
         # Print parsed JSON response
         #print("\n=== PARSED JSON RESPONSE ===")
@@ -279,6 +279,9 @@ def process_single_column(column_array, model_name, answer_key_path, temperature
         if hasattr(response, 'usage_metadata'):
             input_tokens = response.usage_metadata.prompt_token_count
             output_tokens = response.usage_metadata.candidates_token_count
+
+        # =========== Second Prompt
+
 
         # Load answer key
         with open(answer_key_path, 'r') as f:
