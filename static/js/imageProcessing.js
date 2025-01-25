@@ -236,20 +236,25 @@ function handleContinueToStage3(e) {
             displayColumns(processingState.columnData);
 
             // Handle header image
-            const headerImageContainer = document.createElement('div');
-            headerImageContainer.id = 'header-image-container';
-            
-            const headerImage = document.createElement('img');
-            headerImage.id = 'header-image';
-            headerImage.alt = 'Processed Header';
+            const headerContainer = document.createElement('div');
+            headerContainer.className = 'header-container';
+            headerContainer.style.textAlign = 'center';
+            headerContainer.style.marginBottom = '30px';
             
             if (processingState.headerData) {
                 console.log('Setting header image source');
+                const headerImage = document.createElement('img');
+                headerImage.id = 'header-image';
                 headerImage.src = `data:image/jpeg;base64,${processingState.headerData}`;
+                headerImage.alt = 'Processed Header';
+                headerImage.style.maxWidth = '300px';
+                headerImage.style.height = 'auto';
+                headerImage.style.border = '1px solid #ddd';
+                headerImage.style.borderRadius = '4px';
+                
+                headerContainer.appendChild(headerImage);
+                container.insertBefore(headerContainer, container.firstChild);
             }
-            
-            headerImageContainer.appendChild(headerImage);
-            container.insertBefore(headerImageContainer, container.firstChild);
         }
     }, 100); // Small delay to ensure DOM is ready
 }

@@ -421,18 +421,23 @@ body {
     margin-bottom: 0;
 }
 
+.header-container {
+    text-align: center;
+    margin: 0 auto 30px;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    width: fit-content;
+}
+
 #header-image {
     max-width: 300px;
     height: auto;
     border: 1px solid #dee2e6;
     border-radius: 4px;
-    margin: 0 auto 20px;
     display: block;
-}
-
-#header-image-container {
-    text-align: center;
-    margin-bottom: 30px;
+    margin: 0 auto;
 }
 
 #settings-section {
