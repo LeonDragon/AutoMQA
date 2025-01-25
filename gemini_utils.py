@@ -284,7 +284,7 @@ def process_single_column(column_array, model_name, answer_key_path,
         from prompts import get_prompt
         prompt_content = get_prompt('experiment_1', 'column_analysis')
 
-        # Make API call
+        # First API call - column analysis
         api_result = call_gemini_api(
             prompt_content=prompt_content,
             model_name=model_name,
@@ -295,11 +295,30 @@ def process_single_column(column_array, model_name, answer_key_path,
         
         if 'error' in api_result:
             return {'error': api_result['error']}
-        
-        # Make aother Gemii API call here for prompt(json_extract, json) that chain the results from above API api_result
 
-        # Parse response
-        json_response = json.loads(api_result['response'].text)
+        # Second API call - JSON extraction and validation
+        from prompts import get_prompt
+        json_prompt = get_prompt('json_extract', 'json')
+        
+        # Chain the first response into the second prompt
+        json_result = call_gemini_api(
+            prompt_content=f"{api_result['response'].text}\n\n{json_prompt}",
+            model_name=model_name,
+            temperature=0,  # Use 0 temperature for strict JSON extraction
+            mime_type="application/json"
+        )
+        
+        if 'error' in json_result:
+            return {'error': json_result['error']}
+
+        # Parse the final JSON response
+        json_response = json.loads(json_result['response'].text)
+        
+        # Combine token counts from both API calls
+        total_tokens = {
+            'input': api_result['tokens']['input'] + json_result['tokens']['input'],
+            'output': api_result['tokens']['output'] + json_result['tokens']['output']
+        }
         
         # Load answer key
         with open(answer_key_path, 'r') as f:
@@ -317,7 +336,7 @@ def process_single_column(column_array, model_name, answer_key_path,
             'answers': json_response,
             'scores': scores,
             'response': json_response,
-            'tokens': api_result['tokens']
+            'tokens': total_tokens
         }
     except Exception as e:
         return {'error': str(e)}
