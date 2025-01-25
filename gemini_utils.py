@@ -282,16 +282,19 @@ def process_single_column(column_array, model_name, answer_key_path,
     try:
         # Get prompt content
         from prompts import get_prompt
-        prompt_content = get_prompt('experiment_1', 'column_analysis')
+        prompt_content = get_prompt('experiment_3', 'column_analysis')
 
         # First API call - column analysis
+        print("\n== Reponse of Prompt 1 ==")
         api_result = call_gemini_api(
             prompt_content=prompt_content,
             model_name=model_name,
-            temperature=temperature,
+            temperature=0,
             image_np=column_array,
-            compress_quality=compress_quality
+            compress_quality=compress_quality,
+            mime_type='text/plain'
         )
+        print(api_result['response'].text)
         
         if 'error' in api_result:
             return {'error': api_result['error']}
@@ -301,12 +304,14 @@ def process_single_column(column_array, model_name, answer_key_path,
         json_prompt = get_prompt('json_extract', 'json')
         
         # Chain the first response into the second prompt
+        print("\n== Reponse of Prompt 2 ==")
         json_result = call_gemini_api(
             prompt_content=f"{api_result['response'].text}\n\n{json_prompt}",
             model_name=model_name,
             temperature=0,  # Use 0 temperature for strict JSON extraction
             mime_type="application/json"
         )
+        print(json_result['response'].text)
         
         if 'error' in json_result:
             return {'error': json_result['error']}
