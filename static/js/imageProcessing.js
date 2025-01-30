@@ -197,6 +197,10 @@ document.getElementById('student-sheet-form').addEventListener('submit', async (
             } else {
                 console.warn('No header data in response');
             }
+            if (data.vertical_groups) {
+                processingState.verticalGroups = data.vertical_groups;
+                console.log('Vertical groups stored:', processingState.verticalGroups.length);
+            }
 
             // Show review controls
             reviewControls.style.display = 'block';
@@ -233,7 +237,7 @@ function handleContinueToStage3(e) {
         const columnsSection = document.getElementById('columns-section');
         if (columnsSection) {
             // Display columns using the dedicated function
-            displayColumns(processingState.columnData, data.vertical_groups || []);
+            displayColumns(processingState.columnData, processingState.verticalGroups || []);
 
             // Handle header image only if it doesn't already exist
             const existingHeader = document.getElementById('header-image-container');
