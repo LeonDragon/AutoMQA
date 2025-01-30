@@ -1253,6 +1253,13 @@ async function reprocessColumn(index, columnBase64) {
     }
 }
 
+function toggleGroupVisibility(groupId) {
+    const group = document.getElementById(groupId);
+    if (group) {
+        group.style.display = group.style.display === 'none' ? 'grid' : 'none';
+    }
+}
+
 function showToast(message, type = 'info') {
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
