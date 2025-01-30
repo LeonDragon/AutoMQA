@@ -174,16 +174,30 @@ def process_image(image_data, min_width=20, min_height=4, min_aspect_ratio=0.7, 
                         warped_bgr = warped
                     warped = enhance_bubbles(warped_bgr)
 
-                    # Split into columns
+                    # Split into columns and vertical groups
                     warped_height, warped_width = warped.shape[:2]
                     column_width = warped_width // 4
-                    columns = [
-                        warped[0:warped_height, 0:column_width],
-                        warped[0:warped_height, column_width:2 * column_width],
-                        warped[0:warped_height, 2 * column_width:3 * column_width],
-                        warped[0:warped_height, 3 * column_width:warped_width]
-                    ]
-                    print(f"Split image into {len(columns)} columns")
+                    columns = []
+                    vertical_groups = []
+
+                    for i in range(4):
+                        # Existing column split
+                        col = warped[0:warped_height, i*column_width:(i+1)*column_width]
+                        columns.append(col)
+                        
+                        # New vertical grouping logic
+                        col_height = col.shape[0]
+                        row_height = col_height // 5  # Split into 5 vertical groups
+                        for j in range(5):
+                            row_group = col[j*row_height:(j+1)*row_height, 0:column_width]
+                            _, row_buffer = cv2.imencode('.jpg', row_group)
+                            vertical_groups.append({
+                                'column': i,
+                                'group': j,
+                                'image': base64.b64encode(row_buffer).decode('utf-8')
+                            })
+
+                    print(f"Split image into {len(columns)} columns and {len(vertical_groups)} vertical groups")
                     
                     header = img_np[0:y_min, 0:img_np.shape[1]]
                     
@@ -202,7 +216,8 @@ def process_image(image_data, min_width=20, min_height=4, min_aspect_ratio=0.7, 
                         'processed_image': base64.b64encode(processed_img_encoded).decode(),
                         'warped_image': base64.b64encode(warped_encoded).decode(),
                         'columns': column_encoded,
-                        'header': base64.b64encode(header_encoded).decode()
+                        'header': base64.b64encode(header_encoded).decode(),
+                        'vertical_groups': vertical_groups
                     }
             except Exception as e:
                 print(f"Error in answer area processing: {str(e)}")

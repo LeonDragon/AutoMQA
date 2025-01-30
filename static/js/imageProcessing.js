@@ -233,7 +233,7 @@ function handleContinueToStage3(e) {
         const columnsSection = document.getElementById('columns-section');
         if (columnsSection) {
             // Display columns using the dedicated function
-            displayColumns(processingState.columnData);
+            displayColumns(processingState.columnData, data.vertical_groups || []);
 
             // Handle header image only if it doesn't already exist
             const existingHeader = document.getElementById('header-image-container');
@@ -1023,9 +1023,10 @@ function proceedToStage3() {
 }
 
 // Update displayColumns function to properly handle image loading
-function displayColumns(columns) {
+function displayColumns(columns, verticalGroups) {
     console.log('=== Display Columns Called ===');
     console.log('Columns to display:', columns?.length);
+    console.log('Vertical groups:', verticalGroups?.length);
     
     const container = document.getElementById('columns-container');
     console.log('Container found:', !!container);
@@ -1061,6 +1062,38 @@ function displayColumns(columns) {
         
         // Add row with column pairs to container
         container.appendChild(rowDiv);
+        
+        // Add vertical groups for these columns
+        [i, i + 1].forEach(colIndex => {
+            if (colIndex < columns.length) {
+                const groupContainer = document.createElement('div');
+                groupContainer.className = 'vertical-groups-container mt-3';
+                groupContainer.innerHTML = `
+                    <div class="group-header">
+                        <h6>Vertical Groups - Column ${colIndex + 1}</h6>
+                        <button class="btn btn-sm btn-toggle" 
+                                onclick="toggleGroupVisibility('group-${colIndex}')">
+                            Toggle Groups
+                        </button>
+                    </div>
+                    <div class="row-group-grid" id="group-${colIndex}" style="display: none;">
+                        ${verticalGroups
+                            .filter(g => g.column === colIndex)
+                            .map(g => `
+                                <div class="row-group-item" data-column="${g.column}" data-group="${g.group}">
+                                    <img src="data:image/jpeg;base64,${g.image}" 
+                                         alt="Group ${g.group + 1}">
+                                    <button class="btn-process-group" 
+                                            onclick="processVerticalGroup(${g.column}, ${g.group})">
+                                        Analyze
+                                    </button>
+                                </div>
+                            `).join('')}
+                    </div>
+                `;
+                container.appendChild(groupContainer);
+            }
+        });
     }
     
     console.log('Display columns setup completed');
