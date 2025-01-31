@@ -39,6 +39,8 @@ const processingState = {
     }
 };
 
+let globalScoreMessages = ""; // Initialize as an empty string
+
 // Add back buttons to each stage's HTML through JavaScript
 document.addEventListener('DOMContentLoaded', function() {
     // Debug check for Check Score button
@@ -49,24 +51,76 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Check Score button found in DOM');
     }
 
-    // Add back buttons to stages 2, 3, and 4
-    const stages = [2, 3, 4];
-    stages.forEach(stageNum => {
-        const stage = document.getElementById(`stage${stageNum}`);
-        if (stage) {
-            const cardHeader = stage.querySelector('.card-header');
-            if (cardHeader) {
-                // Create back button
-                const backButton = document.createElement('button');
-                backButton.className = 'btn btn-outline-light btn-sm float-end';
-                backButton.innerHTML = '<i class="fas fa-arrow-left me-2"></i>Back';
-                backButton.onclick = () => goBack(stageNum);
-                
-                // Add button to card header
-                cardHeader.appendChild(backButton);
-            }
-        }
+    const scoreMessages = globalScoreMessages
+
+    // Log to console
+    console.log(scoreMessages);
+    
+    // Create and show popup dialog with all results
+    const dialog = document.createElement('dialog');
+    dialog.style.cssText = `
+        border: none;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 0;
+        max-width: 500px;
+        width: 90%;
+    `;
+    
+    dialog.innerHTML = `
+        <div style="
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+        ">
+            <h3 style="
+                margin: 0 0 20px 0;
+                color: #2c3e50;
+                font-size: 24px;
+                text-align: center;
+                border-bottom: 2px solid #eee;
+                padding-bottom: 10px;
+            ">Scoring Results</h3>
+            <div style="
+                background: #f8f9fa;
+                padding: 15px;
+                border-radius: 6px;
+                margin-bottom: 20px;
+                font-family: monospace;
+                font-size: 14px;
+                line-height: 1.6;
+            ">${scoreMessages.split('\n').map(msg => {
+                if (msg.includes('Processing Time') || msg.includes('Token Usage')) {
+                    return `<div style="color: #666; margin-top: 10px;">${msg}</div>`;
+                }
+                return `<div>${msg}</div>`;
+            }).join('')}</div>
+            <div style="text-align: center;">
+                <button onclick="this.closest('dialog').close()" style="
+                    background: #007bff;
+                    color: white;
+                    border: none;
+                    padding: 8px 20px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    transition: background 0.3s;
+                ">Close</button>
+            </div>
+        </div>
+    `;
+
+    // Add hover effect to the close button
+    const closeButton = dialog.querySelector('button');
+    closeButton.addEventListener('mouseover', () => {
+        closeButton.style.background = '#0056b3';
     });
+    closeButton.addEventListener('mouseout', () => {
+        closeButton.style.background = '#007bff';
+    });
+
+    document.body.appendChild(dialog);
+    dialog.showModal();
 });
 
 // Update the showStage function to handle stage transitions
@@ -762,20 +816,24 @@ document.getElementById('process-all-columns').addEventListener('click', async f
     button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing all columns...';
     
     try {
-        console.log('Preparing API request to /process_all_columns');
+        console.log('Preparing API request to /process_all_columns_verticalGroup');
+        //console.log('Preparing API request to /process_all_columns');
         console.log('Request payload:', {
             model_name: modelName,
-            columns: processingState.columnData
+            columns: processingState.columnData,
+            vertical_groups: processingState.verticalGroups
         });
         
-        const response = await fetch('/process_all_columns', {
+        const response = await fetch('/process_all_columns_verticalGroup', {
+        //const response = await fetch('/process_all_columns', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
                 model_name: modelName,
-                columns: processingState.columnData
+                columns: processingState.columnData,
+                vertical_groups: processingState.verticalGroups
             })
         });
 
@@ -845,6 +903,8 @@ document.getElementById('process-all-columns').addEventListener('click', async f
                         `Exam ${examCode} Score: ${result.score}% (${result.correct}/${result.total} questions)`
                     )
                     .join('\n') + processingTime + tokenUsage;
+                
+                globalScoreMessages = scoreMessages
 
                 // Log to console
                 console.log(scoreMessages);

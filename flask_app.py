@@ -18,6 +18,7 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'jpg', 'jpeg', 'png', 'heic'}
 
+# Core preprocessing of image (for stage 2)
 def process_image(image_data, min_width=20, min_height=4, min_aspect_ratio=0.7, max_aspect_ratio=1.4):
     print("\n=== Starting Image Processing ===")
     try:
@@ -166,13 +167,13 @@ def process_image(image_data, min_width=20, min_height=4, min_aspect_ratio=0.7, 
                     cv2.rectangle(img_np, (x_min, y_min), (x_max, y_max), (0, 255, 0), 2)
 
                     # Enhance bubbles in the warped image
-                    from helper.preprocessing import enhance_bubbles
-                    # Convert grayscale to BGR for processing
-                    if len(warped.shape) == 2:  # If grayscale
-                        warped_bgr = cv2.cvtColor(warped, cv2.COLOR_GRAY2BGR)
-                    else:
-                        warped_bgr = warped
-                    warped = enhance_bubbles(warped_bgr)
+                    # from helper.preprocessing import enhance_bubbles
+                    # # Convert grayscale to BGR for processing
+                    # if len(warped.shape) == 2:  # If grayscale
+                    #     warped_bgr = cv2.cvtColor(warped, cv2.COLOR_GRAY2BGR)
+                    # else:
+                    #     warped_bgr = warped
+                    # warped = enhance_bubbles(warped_bgr)
 
                     # Split into columns and vertical groups
                     warped_height, warped_width = warped.shape[:2]
@@ -187,8 +188,8 @@ def process_image(image_data, min_width=20, min_height=4, min_aspect_ratio=0.7, 
                         
                         # New vertical grouping logic
                         col_height = col.shape[0]
-                        row_height = col_height // 5  # Split into 5 vertical groups
-                        for j in range(5):
+                        row_height = col_height // 3  # Split into 5 vertical groups
+                        for j in range(3):
                             row_group = col[j*row_height:(j+1)*row_height, 0:column_width]
                             _, row_buffer = cv2.imencode('.jpg', row_group)
                             vertical_groups.append({
@@ -236,6 +237,7 @@ def process_image(image_data, min_width=20, min_height=4, min_aspect_ratio=0.7, 
 def index():
     return render_template('index.html')
 
+# Stage 1: Process Answer Key
 @app.route('/process_answer_key', methods=['POST'])
 def handle_answer_key():
     if 'answer_key' not in request.files:
@@ -273,6 +275,7 @@ def handle_answer_key():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# Stage 2: Image Processing
 @app.route('/process_student_sheet', methods=['POST'])
 def handle_student_sheet():
     if 'student_sheet' not in request.files:
@@ -328,37 +331,37 @@ def handle_student_sheet():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/process_with_gemini', methods=['POST'])
-def handle_gemini_processing():
-    try:
-        data = request.json
-        model_name = data.get('model_name', 'gemini-1.5-flash')
-        columns = data.get('columns', [])
-        answer_key_path = "answer_keys.json"
+# def handle_gemini_processing():
+#     try:
+#         data = request.json
+#         model_name = data.get('model_name', 'gemini-1.5-flash')
+#         columns = data.get('columns', [])
+#         answer_key_path = "answer_keys.json"
         
-        # Convert base64 columns back to numpy arrays
-        column_arrays = []
-        for col_base64 in columns:
-            col_data = base64.b64decode(col_base64)
-            col_array = cv2.imdecode(np.frombuffer(col_data, np.uint8), cv2.IMREAD_COLOR)
-            column_arrays.append(col_array)
+#         # Convert base64 columns back to numpy arrays
+#         column_arrays = []
+#         for col_base64 in columns:
+#             col_data = base64.b64decode(col_base64)
+#             col_array = cv2.imdecode(np.frombuffer(col_data, np.uint8), cv2.IMREAD_COLOR)
+#             column_arrays.append(col_array)
         
-        # Process columns using gemini_utils
-        answer_key_data, all_answers, scores, all_responses = process_student_answers(
-            column_arrays, model_name, answer_key_path
-        )
+#         # Process columns using gemini_utils
+#         answer_key_data, all_answers, scores, all_responses = process_student_answers(
+#             column_arrays, model_name, answer_key_path
+#         )
         
-        if all_answers is None:
-            return jsonify({'error': 'Failed to process columns'}), 400
+#         if all_answers is None:
+#             return jsonify({'error': 'Failed to process columns'}), 400
             
-        return jsonify({
-            'success': True,
-            'answers': all_answers,
-            'scores': {str(k): float(v) if v is not None else None for k, v in scores.items()},
-            'all_responses': all_responses
-        })
+#         return jsonify({
+#             'success': True,
+#             'answers': all_answers,
+#             'scores': {str(k): float(v) if v is not None else None for k, v in scores.items()},
+#             'all_responses': all_responses
+#         })
             
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+#     except Exception as e:
+#         return jsonify({'error': str(e)}), 500
 
 @app.route('/process_single_column', methods=['POST'])
 def handle_single_column():
@@ -436,6 +439,8 @@ def handle_all_columns():
         start_time = time.time()
         data = request.json
         print("Request data received:", data is not None)
+
+        #print(data.get('vertical_groups'))
         
         model_name = data.get('model_name', 'gemini-1.5-flash')
         columns_base64 = data.get('columns', [])
@@ -476,6 +481,7 @@ def handle_all_columns():
         
         print("\n=== Gemini Processing Complete ===")
         print(f"Answers received: {all_answers is not None}")
+        print(all_answers)
         print(f"Scores received: {scores is not None}")
         
         if all_answers is None:
@@ -504,6 +510,104 @@ def handle_all_columns():
         
     except Exception as e:
         print(f"\n=== Error in /process_all_columns ===")
+        print(f"Error type: {type(e).__name__}")
+        print(f"Error message: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+    
+@app.route('/process_all_columns_verticalGroup', methods=['POST'])
+def handle_all_verticalGroup():
+    print("\n=== Received request to /process_all_vertical_group ===")
+    try:
+        import time
+        start_time = time.time()
+        data = request.json
+        print("Request data received:", data is not None)
+
+        model_name = data.get('model_name', 'gemini-1.5-flash')
+        vertical_groups_base64 = data.get('vertical_groups', [])
+
+        print("\n=== Request Details ===")
+        print(f"Model name: {model_name}")
+        print(f"Number of vertical groups received: {len(vertical_groups_base64)}")
+
+        if not vertical_groups_base64:
+            print("Error: No vertical groups provided in request")
+            return jsonify({'error': 'No vertical groups provided'}), 400
+
+        # Convert base64 vertical groups back to numpy arrays
+        column_arrays = []
+        group_idx = 0
+        for group_data in vertical_groups_base64:
+            try:
+                col_base64 = group_data.get('image')
+                
+                print(f"\nProcessing Vertical Group {group_idx+1}:")
+                col_data = base64.b64decode(col_base64)
+                print(f"- Base64 decoded successfully")
+
+                col_array = cv2.imdecode(np.frombuffer(col_data, np.uint8), cv2.IMREAD_COLOR)
+                if col_array is not None:
+                    print(f"- Converted to numpy array: shape={col_array.shape}, dtype={col_array.dtype}")
+                    column_arrays.append(col_array)
+                else:
+                    print(f"Error: Failed to decode vertical group {group_idx+1}")
+                    raise ValueError(f"Failed to decode vertical group {group_idx+1}")
+            except Exception as e:
+                print(f"Error processing vertical group {group_idx+1}: {str(e)}")
+                raise
+            group_idx += 1
+
+        print(f"\n=== Vertical Group Processing Complete ===")
+        print(f"Successfully processed {len(column_arrays)} vertical groups")
+
+        # Process all columns with Gemini
+        print("\n=== Starting Gemini Processing ===")
+        answer_key_data, all_answers, scores, all_responses, token_usage = process_student_answers(column_arrays, model_name, 'answer_keys.json')
+
+         # Post-processing all_responses to combine into 4 arrays
+        num_groups_per_combined_array = len(all_responses) // 4
+        combined_responses = []
+        for i in range(4):
+            combined_response = {}
+            for j in range(i * num_groups_per_combined_array, (i + 1) * num_groups_per_combined_array):
+                if j < len(all_responses):
+                    combined_response.update(all_responses[j])
+            combined_responses.append(combined_response)
+
+        # Update all_responses with the combined responses
+        all_responses = combined_responses
+
+        print("\n=== Gemini Processing Complete ===")
+        print(f"Answers received: {all_answers is not None}")
+        print(all_answers)
+        print(f"Scores received: {scores is not None}")
+
+        if all_answers is None:
+            raise ValueError("Failed to get answers from Gemini")
+
+        # Split answers into groups of 15
+        column_results = [all_answers[i:i+15] for i in range(0, len(all_answers), 15)]
+
+        print("\n=== Preparing Response ===")
+        print(f"Number of column results: {len(column_results)}")
+        print(f"Scores: {scores}")
+
+        processing_time = time.time() - start_time
+        print(f"\n=== Total Processing Time ===")
+        print(f"Processing completed in {processing_time:.2f} seconds")
+
+        return jsonify({
+            'success': True,
+            'column_results': column_results,
+            'scores': scores,
+            'all_responses': all_responses, #json output from Gemini
+            'answer_key_data': answer_key_data,
+            'processing_time': processing_time,
+            'token_usage': token_usage
+        })
+
+    except Exception as e:
+        print(f"\n=== Error in /process_all_Vertical_Groups ===")
         print(f"Error type: {type(e).__name__}")
         print(f"Error message: {str(e)}")
         return jsonify({'error': str(e)}), 500
