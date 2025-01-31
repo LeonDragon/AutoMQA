@@ -292,8 +292,84 @@ def process_single_column(column_array, model_name, answer_key_path,
             temperature=0,
             image_np=column_array,
             compress_quality=compress_quality,
-            #mime_type='text/plain'
+            mime_type='text/plain'
+            #mime_type="application/json"
+        )
+        print(api_result['response'].text)
+        
+        if 'error' in api_result:
+            return {'error': api_result['error']}
+
+        # Second API call - JSON extraction and validation
+        from prompts import get_prompt
+        json_prompt = get_prompt('json_extract', 'json')
+        
+        # Chain the first response into the second prompt
+        print("\n== Reponse of Prompt 2 ==")
+        json_result = call_gemini_api(
+            prompt_content=f"{api_result['response'].text}\n\n{json_prompt}",
+            model_name='gemini-1.5-flash-8b',
+            temperature=0,  # Use 0 temperature for strict JSON extraction
             mime_type="application/json"
+        )
+        print(json_result['response'].text)
+                
+        
+        # If use first prompt only
+        #json_result = api_result
+
+        if 'error' in json_result:
+            return {'error': json_result['error']}
+
+        # Parse the final JSON response
+        json_response = json.loads(json_result['response'].text)
+        
+        # Combine token counts from both API calls
+        total_tokens = {
+            'input': api_result['tokens']['input'] + json_result['tokens']['input'],
+            'output': api_result['tokens']['output'] + json_result['tokens']['output']
+        }
+        
+        # Load answer key
+        with open(answer_key_path, 'r') as f:
+            answer_key_data = json.load(f)["answerKeys"]
+
+        # Calculate scores
+        scores = {}
+        for test_code, test_answer_key in answer_key_data.items():
+            correct_answers = sum(1 for q_num, answer in json_response.items() 
+                               if str(q_num) in test_answer_key and answer == test_answer_key[str(q_num)])
+            score = (correct_answers / len(test_answer_key)) * 100
+            scores[test_code] = score
+
+        return {
+            'answers': json_response,
+            'scores': scores,
+            'response': json_response,
+            'tokens': total_tokens
+        }
+    except Exception as e:
+        return {'error': str(e)}
+    
+def process_single_column_CoT_01(column_array, model_name, answer_key_path, 
+                         temperature=0, 
+                         compress_quality=100):
+    """Process a single column with Gemini"""
+    try:
+        # Get prompt content
+        from prompts import get_prompt
+        prompt_content = get_prompt('experiment_3', 'column_analysis')
+
+        # First API call - column analysis
+        print("\n== Reponse of Prompt 1 ==")
+        api_result = call_gemini_api(
+            prompt_content=prompt_content,
+            model_name=model_name,
+            temperature=0,
+            image_np=column_array,
+            compress_quality=compress_quality,
+            mime_type='text/plain'
+            #mime_type="application/json"
         )
         print(api_result['response'].text)
         
@@ -326,8 +402,63 @@ def process_single_column(column_array, model_name, answer_key_path,
         
         # Combine token counts from both API calls
         total_tokens = {
-            'input': api_result['tokens']['input'] + json_result['tokens']['input'],
-            'output': api_result['tokens']['output'] + json_result['tokens']['output']
+            'input': json_result['tokens']['input'],
+            'output': json_result['tokens']['output']
+        }
+        
+        # Load answer key
+        # with open(answer_key_path, 'r') as f:
+        #     answer_key_data = json.load(f)["answerKeys"]
+
+        # Calculate scores
+        scores = {}
+        # for test_code, test_answer_key in answer_key_data.items():
+        #     correct_answers = sum(1 for q_num, answer in json_response.items() 
+        #                        if str(q_num) in test_answer_key and answer == test_answer_key[str(q_num)])
+        #     score = (correct_answers / len(test_answer_key)) * 100
+        #     scores[test_code] = score
+
+        return {
+            'answers': json_response,
+            'scores': scores,
+            'response': json_response,
+            'tokens': total_tokens,
+            'llmReponse_CoT': api_result
+        }
+    except Exception as e:
+        return {'error': str(e)}
+
+def process_single_column_chaining_02(llmReponse_CoT, tokens, model_name, answer_key_path, 
+                         temperature=0, 
+                         compress_quality=100):
+    """Process a prompt chaining with Gemini"""
+    try:
+        # llmReponse_CoT => String of prompt with append all previous responses from LLM
+
+        # Second API call - JSON extraction and validation
+        from prompts import get_prompt
+        json_prompt = get_prompt('json_extract', 'json')
+        
+        # Chain the first response into the second prompt
+        print("\n== Reponse of Prompt 2 ==")
+        json_result = call_gemini_api(
+            prompt_content=f"{llmReponse_CoT}\n\n{json_prompt}",
+            model_name=model_name,
+            temperature=0,  # Use 0 temperature for strict JSON extraction
+            mime_type="application/json"
+        )
+        print(json_result['response'].text)
+
+        if 'error' in json_result:
+            return {'error': json_result['error']}
+
+        # Parse the final JSON response
+        json_response = json.loads(json_result['response'].text)
+        
+        # Combine token counts from both API calls
+        total_tokens = {
+            'input': tokens.input + json_result['tokens']['input'],
+            'output': tokens.output + json_result['tokens']['output']
         }
         
         # Load answer key
@@ -378,6 +509,9 @@ def process_student_answers(columns, model_name, answer_key_path):
             except Exception as e:
                 results.append((idx, {'error': str(e)}))
     
+    print("================== RESULTS ==================")
+    print(results)
+
     # Sort results by original column order
     results.sort(key=lambda x: x[0])
     
@@ -407,6 +541,7 @@ def process_student_answers(columns, model_name, answer_key_path):
         'output_tokens': total_output_tokens
     }
 
+# NOT NEED
 def process_single_vertical_group(group, model_name, answer_key_path, 
                           temperature=0, 
                           compress_quality=100):
@@ -489,7 +624,8 @@ def process_single_vertical_group(group, model_name, answer_key_path,
     except Exception as e:
         print(f"Error processing group: {e}")
         return {'error': str(e)}
-    
+
+# NOT NEED  
 # New approach for split each column further
 def process_student_answers_vertical_group(vertical_groups, model_name, answer_key_path):
     """Process vertical groups in parallel using ThreadPoolExecutor"""

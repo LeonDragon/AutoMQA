@@ -276,7 +276,7 @@ PROMPTS = {
     },
     'json_extract': {
         'json': """
-            Return the answer results in structured JSON data. **No Comments in JSON:** Do not include any comments or explanations inside the JSON object itself.
+            TASK: Return the answer results in structured JSON data. **No Comments in JSON:** Do not include any comments or explanations inside the JSON object itself.
         """
     }
 }
