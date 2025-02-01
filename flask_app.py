@@ -557,8 +557,16 @@ def handle_all_verticalGroup():
                 raise
             group_idx += 1
 
-        print(f"\n=== Vertical Group Processing Complete ===")
-        print(f"Successfully processed {len(column_arrays)} vertical groups")
+        # Drop the last two elements from column_arrays if possible and adjust group_idx
+        # if len(column_arrays) >= 2:
+        #     column_arrays = column_arrays[:-2]
+        #     group_idx -= 2  # Decrease group_idx by 2
+        #     print(f"- Dropped last two column arrays. New number of arrays: {len(column_arrays)}")
+        #     print(f"- Adjusted group_idx to: {group_idx}")
+        # else:
+        #     print(f"- column_arrays has fewer than 2 elements, cannot drop. Length: {len(column_arrays)}")
+        print(f"Successfully processed and modified {len(column_arrays)} vertical groups")
+
 
         # Process all columns with Gemini
         print("\n=== Starting Gemini Processing ===")

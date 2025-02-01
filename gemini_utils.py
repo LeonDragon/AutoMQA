@@ -4,12 +4,16 @@ import io
 import google.generativeai as genai
 from google.ai.generativelanguage_v1beta.types import content  # Import for JSON schema
 import json  # Import the json library
+import time
 
 # Read Gemini API key from file (you might need to adjust the path)
 try:
     with open('secrets/gemini_api_key.txt', 'r') as f:
-        gemini_api_key = f.read().strip()
-        genai.configure(api_key=gemini_api_key)
+      api_keys = [line.strip() for line in f if line.strip()] 
+
+    if not api_keys:
+      raise ValueError("No API keys found in gemini_api_key.txt")
+    
 except FileNotFoundError:
     print("API key file not found. Please make sure 'secrets/gemini_api_key.txt' exists.")
     exit()  # Exit if API key is not found
@@ -231,13 +235,17 @@ def call_gemini_api(prompt_content, model_name="gemini-1.5-flash-latest",
     """Make API call to Gemini with optional image upload"""
     try:
         # Configure API
-        genai.configure(api_key=gemini_api_key)
+        import random
+        random_key = random.choice(api_keys)
+        genai.configure(api_key=random_key)
+        print(f"Generative AI configured with a random API key ending in: {random_key[-5:]}")
+        genai.configure(api_key=random_key)
         
         # Create generation config
         generation_config = {
             "temperature": temperature,
             "top_p": 1,
-            "top_k": 10,
+            "top_k": 40,
             "max_output_tokens": 8192,
             "response_mime_type": mime_type,
         }
@@ -270,12 +278,13 @@ def call_gemini_api(prompt_content, model_name="gemini-1.5-flash-latest",
             'tokens': {
                 'input': input_tokens,
                 'output': output_tokens
-            }
+            },
+            'rand_api_key': random_key[-5:]
         }
     except Exception as e:
         return {'error': str(e)}
 
-def process_single_column(column_array, model_name, answer_key_path, 
+def process_single_column_OLD(column_array, model_name, answer_key_path, 
                          temperature=0, 
                          compress_quality=100):
     """Process a single column with Gemini"""
@@ -308,7 +317,8 @@ def process_single_column(column_array, model_name, answer_key_path,
         print("\n== Reponse of Prompt 2 ==")
         json_result = call_gemini_api(
             prompt_content=f"{api_result['response'].text}\n\n{json_prompt}",
-            model_name='gemini-1.5-flash-8b',
+            #model_name='gemini-1.5-flash-8b',
+            model_name=model_name,
             temperature=0,  # Use 0 temperature for strict JSON extraction
             mime_type="application/json"
         )
@@ -349,6 +359,110 @@ def process_single_column(column_array, model_name, answer_key_path,
             'tokens': total_tokens
         }
     except Exception as e:
+        print("===>> Error in process_single_column")
+        return {'error': str(e)}
+    
+def process_single_column(column_array, model_name, answer_key_path,
+                          temperature=0,
+                          compress_quality=100, max_retries=5, retry_delay=5):
+    """Process a single column with Gemini, with retries for API calls."""
+    retries_api1 = 0
+    retries_api2 = 0
+
+    while retries_api1 < max_retries:
+        try:
+            # Get prompt content
+            from prompts import get_prompt
+            prompt_content = get_prompt('experiment_3', 'column_analysis')
+
+            # First API call - column analysis
+            print("\n== Response of Prompt 1 ==")
+            api_result = call_gemini_api(
+                prompt_content=prompt_content,
+                model_name=model_name,
+                temperature=0,
+                image_np=column_array,
+                compress_quality=compress_quality,
+                mime_type='text/plain'
+                # mime_type="application/json"
+            )
+            print(api_result['response'].text)
+
+            if 'error' in api_result:
+                raise Exception(api_result['error']) # Raise an exception to trigger the retry mechanism
+
+            break  # API call successful, break out of the retry loop
+
+        except Exception as e:
+            retries_api1 += 1
+            print(f"Error in first API call: {e}. Retrying in {retry_delay} seconds... (Attempt {retries_api1}/{max_retries})")
+            if retries_api1 < max_retries:
+                time.sleep(retry_delay)
+            else:
+                print(f"Max retries reached for first API call. Returning error.")
+                return {'error': str(e)}
+
+    while retries_api2 < max_retries:
+        try:
+            # Second API call - JSON extraction and validation
+            from prompts import get_prompt
+            json_prompt = get_prompt('json_extract', 'json')
+
+            # Chain the first response into the second prompt
+            print("\n== Response of Prompt 2 ==")
+            json_result = call_gemini_api(
+                prompt_content=f"{api_result['response'].text}\n\n{json_prompt}",
+                model_name='gemini-1.5-flash-8b',
+                #model_name=model_name,
+                temperature=0,  # Use 0 temperature for strict JSON extraction
+                mime_type="application/json"
+            )
+            print(json_result['response'].text)
+
+            if 'error' in json_result:
+              raise Exception(json_result['error'])
+
+            break
+
+        except Exception as e:
+            retries_api2 += 1
+            print(f"Error in second API call: {e}. Retrying in {retry_delay} seconds... (Attempt {retries_api2}/{max_retries})")
+            if retries_api2 < max_retries:
+                time.sleep(retry_delay)
+            else:
+                print(f"Max retries reached for second API call. Returning error.")
+                return {'error': str(e)}
+
+    try:
+        # Parse the final JSON response
+        json_response = json.loads(json_result['response'].text)
+
+        # Combine token counts from both API calls
+        total_tokens = {
+            'input': api_result['tokens']['input'] + json_result['tokens']['input'],
+            'output': api_result['tokens']['output'] + json_result['tokens']['output']
+        }
+
+        # Load answer key
+        with open(answer_key_path, 'r') as f:
+            answer_key_data = json.load(f)["answerKeys"]
+
+        # Calculate scores
+        scores = {}
+        for test_code, test_answer_key in answer_key_data.items():
+            correct_answers = sum(1 for q_num, answer in json_response.items()
+                                  if str(q_num) in test_answer_key and answer == test_answer_key[str(q_num)])
+            score = (correct_answers / len(test_answer_key)) * 100
+            scores[test_code] = score
+
+        return {
+            'answers': json_response,
+            'scores': scores,
+            'response': json_response,
+            'tokens': total_tokens
+        }
+    except Exception as e:
+        print("===>> Error in process_single_column (after API calls)")
         return {'error': str(e)}
     
 def process_single_column_CoT_01(column_array, model_name, answer_key_path, 
