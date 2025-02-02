@@ -4,7 +4,7 @@ import numpy as np
 from PIL import Image, UnidentifiedImageError
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from imutils.perspective import four_point_transform
-from helper.perspective_correction import adjust_perspective, adjust_perspective_crop_by_coordinates
+from helper.perspective_correction import adjust_perspective, adjust_perspective_column_image
 from helper.est_answer_area import infer_answer_area_average_size
 from gemini_utils import process_answer_key, process_student_answers, process_single_column, recheck_single_column
 from helper.heic_converter import convert_single_fileBytes_to_img_obj, handle_uploaded_file
@@ -184,6 +184,7 @@ def process_image(image_data, min_width=20, min_height=4, min_aspect_ratio=0.7, 
                     for i in range(4):
                         # Existing column split
                         col = warped[0:warped_height, i*column_width:(i+1)*column_width]
+                        col = adjust_perspective_column_image(col)
                         columns.append(col)
                         
                         # New vertical grouping logic
