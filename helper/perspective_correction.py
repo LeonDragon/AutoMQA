@@ -145,6 +145,9 @@ def adjust_perspective_column_image(img_np):
     M = cv2.getRotationMatrix2D(center, angle, 1)
     rotated_img = cv2.warpAffine(img_np, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
     
+    # --- Step 7: Crop the rotated image based on bubble locations ---
+    # TODO
+    
     # # (Optional) Visualization: Show the rotated image.
     # plt.figure(figsize=(6, 6))
     # if len(rotated_img.shape) == 2:
