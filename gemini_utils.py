@@ -373,7 +373,7 @@ def process_single_column(column_array, model_name, answer_key_path,
         try:
             # Get prompt content
             from prompts import get_prompt
-            prompt_content = get_prompt('experiment_3', 'column_analysis')
+            prompt_content = get_prompt('experiment_4', 'column_analysis')
 
             # First API call - column analysis
             print("\n== Response of Prompt 1 ==")

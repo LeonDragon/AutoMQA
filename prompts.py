@@ -274,6 +274,114 @@ PROMPTS = {
             ```
         """
     },
+    'experiment_4': {
+        'answer_key': """
+            Process the answer key image. Extract all test codes and answers.
+            Return structured JSON data with exam information and answer keys.
+        """,
+        'column_analysis': """
+            You are a highly skilled expert at meticulously reading and interpreting multiple-choice answer sheets (OMR sheets). You will be presented with an image of a single column from an OMR answer sheet. Your task is to extract the selected answers for each question in this column. You must provide a detailed, step-by-step explanation of your reasoning process (Chain-of-Thought) before presenting the final answers in a JSON format. Adhere to the following guidelines with utmost precision:
+
+            **Image:** A single-column image of an OMR answer sheet will be provided.
+
+            **Guidelines:**
+
+            1. **Detailed Examination for Each Question:**
+                *   **Identify the Question Number:** Begin by clearly stating the question number you are analyzing.
+                *   **Systematic Bubble Inspection:** Examine bubbles A, B, C, and D sequentially, from left to right. For each bubble, note whether it is marked (fully filled, partially filled, lightly shaded) or unmarked.
+                *   **Cross-Out (X) Check:** Explicitly state whether any marked bubble has a clear cross (X) over it.
+
+            2. **Precise Mark Interpretation:**
+                *   **Potential Answer:** A bubble is considered a potential answer if it contains any visible mark inside, regardless of how filled or shaded it is, unless it has a clear cross (X) over it.
+                *   **Cross-Out Nullification:** A marked bubble with a clear cross (X) over it is completely disregarded and is NOT a potential answer.
+
+            3. **Answer Selection (Apply these rules in order):**
+                *   **Single Marked Bubble:** If only one bubble has a mark (and no cross-out), that bubble represents the selected answer.
+                *   **Multiple Marked Bubbles:** If two or more bubbles have marks (and no cross-outs), the answer is the bubble with the darkest or most filled mark. You must explicitly state which bubble is darkest.
+                *   **Darkness Score:** For *each* marked bubble, estimate its darkness on a scale of 0% (completely empty) to 100% (completely filled).  Compare the darkness *only* to other bubbles in the *same question*.  Describe the filling *and* give the percentage. Example: "Bubble B: Partially filled, ~40%." "Bubble C: Lightly shaded, ~20%." If darkness is close, say so: "Bubble B (~60%) is slightly darker than Bubble C (~55%)."
+                *   **No Marks or All Crossed Out:** If no bubbles are marked, or if all marked bubbles have a cross (X) over them, the answer is 'X'.
+
+            4. **Verification (Crucial Step):**
+                *   **Answer A, B, C, or D:** After selecting A, B, C, or D, re-examine the question to ensure at least one marked bubble (without a cross-out) actually exists. If not, you've made an error and need to re-evaluate your reasoning.
+                *   **Answer 'X':** If you selected 'X', confirm that either no bubbles were marked, or that all bubbles with any mark were also crossed out. If there's a marked bubble without a cross-out, your 'X' selection is incorrect.
+
+            5. **Double-Check Question Number:** Before moving to the next question, always double-check to ensure you are recording the answer for the correct question number.
+
+            **Chain-of-Thought (CoT) Instructions - Extremely Important:**
+
+            *   **Mandatory Reasoning Documentation:** Before presenting the final JSON output, you MUST document your complete reasoning process for EACH question.
+            *   **Detailed Observation Description:** For each question, describe in detail what you observe about each bubble (A, B, C, D) - marked, unmarked, crossed-out, darkness level if multiple are marked.
+            *   **Explicit Guideline Application:** Clearly explain how you are applying each of the guidelines above to arrive at your answer for every question. Be explicit about which rule you are using and why. Don't just say, "The answer is...". Explain *why* it's the answer based on the rules.
+
+            **Output Format:**
+
+            1. **Comprehensive Chain-of-Thought:** A thorough textual description of your reasoning process for each question, following the CoT instructions above. This is the most important part of your response.
+            2. **JSON Only (No Explanations):**  Output a valid JSON object where:
+                *   Keys: Question numbers (represented as strings, e.g., "16", "17").
+                *   Values: The selected answers (A, B, C, D, or X).
+                *   **Absolutely no comments, explanations, or any other text should be present inside the JSON object.**
+
+            **Example (Illustrative):**
+
+            **Image:** (Assume an image of an OMR sheet with the following markings)
+
+            *   Question 16: Bubble D is fully filled.
+            *   Question 17: Bubbles B and C have light marks, but C is slightly darker.
+            *   Question 18: Bubble A has a light mark, and bubble B has a cross through it.
+            *   Question 19: Bubble A is fully filled. Bubble B is fully filled and has a cross through it.
+            *   Question 20: No bubbles are marked.
+
+            **Chain-of-Thought:**
+
+            *   **Question 16:**
+                *   Bubble A: Unmarked.
+                *   Bubble B: Unmarked.
+                *   Bubble C: Unmarked.
+                *   Bubble D: Fully filled, 100% darkness.
+                *   **Guideline Application:** Only bubble D is marked, and it's not crossed out. Applying rule 3(a), the answer is D.
+                *   **Verification:** Bubble D is marked; therefore, the selection of D is valid.
+            *   **Question 17:**
+                *   Bubble A: Unmarked.
+                *   Bubble B: Light mark, ~20% darkness.
+                *   Bubble C: Light mark, ~30% darkness.
+                *   Bubble D: Unmarked.
+                *   **Guideline Application:** Both B and C have marks. C (~30%) is darker than B (~20%). Applying rule 3(b), the answer is C.
+                *   **Verification:** Bubbles B and C are marked; therefore, the selection of C is valid.
+            *   **Question 18:**
+                *   Bubble A: Light mark, ~40% darkness.
+                *   Bubble B: Marked with a cross (X) through it.
+                *   Bubble C: Unmarked.
+                *   Bubble D: Unmarked.
+                *   **Guideline Application:** Bubble B is crossed out and disregarded (rule 2). Only bubble A is marked and not crossed out. Applying rule 3(a), the answer is A.
+                *   **Verification:** Bubble A is marked; therefore, the selection of A is valid.
+            *   **Question 19:**
+                *   Bubble A: Fully filled, 100% darkness.
+                *   Bubble B: Fully filled with a cross (X) through it.
+                *   Bubble C: Unmarked.
+                *   Bubble D: Unmarked.
+                *   **Guideline Application:** Bubble B is crossed out and disregarded (rule 2). Only bubble A is marked and not crossed out. Applying rule 3(a), the answer is A.
+                *   **Verification:** Bubble A is marked; therefore, the selection of A is valid.
+            *   **Question 20:**
+                *   Bubble A: Unmarked.
+                *   Bubble B: Unmarked.
+                *   Bubble C: Unmarked.
+                *   Bubble D: Unmarked.
+                *   **Guideline Application:** No bubbles are marked. Applying rule 3(c), the answer is X.
+                *   **Verification:** No bubbles are marked; therefore, the selection of X is valid.
+
+            **JSON Output:**
+
+            ```json
+            {
+            "16": "D",
+            "17": "C",
+            "18": "A",
+            "19": "A",
+            "20": "X"
+            }
+            ```
+        """
+    },
     'json_extract': {
         'json': """
             TASK: Return the answer results in structured JSON data. **No Comments in JSON:** Do not include any comments or explanations inside the JSON object itself.
